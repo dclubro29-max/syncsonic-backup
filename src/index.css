@@ -1,0 +1,644 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * SyncSonic — limbaj vizual de studio.
+ * Toate culorile sunt canale HSL (fără unități), consumate prin hsl(var(--token)).
+ * Suprafețele au trei niveluri: fundal, panou și panou ridicat.
+ * Accentele deck-urilor rămân distincte: A cyan, B magenta, C verde, D ambră.
+ */
+@layer base {
+  :root {
+    --background: 240 20% 5%;
+    --foreground: 220 24% 96%;
+    --card: 240 17% 8%;
+    --card-foreground: 220 24% 96%;
+    --popover: 240 18% 9%;
+    --popover-foreground: 220 24% 96%;
+    --primary: 258 90% 67%;
+    --primary-foreground: 250 30% 8%;
+    --secondary: 240 14% 14%;
+    --secondary-foreground: 220 24% 96%;
+    --muted: 240 13% 13%;
+    --muted-foreground: 220 12% 63%;
+    --accent: 240 14% 17%;
+    --accent-foreground: 220 24% 98%;
+    --destructive: 356 78% 57%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 45%;
+    --success-foreground: 158 60% 7%;
+    --warning: 38 94% 58%;
+    --warning-foreground: 38 90% 8%;
+    --info: 196 90% 56%;
+    --info-foreground: 200 60% 7%;
+    --border: 240 13% 18%;
+    --input: 240 13% 21%;
+    --ring: 258 90% 67%;
+    --radius: 0.875rem;
+
+    /* Suprafețe */
+    --surface: 240 16% 9%;
+    --surface-raised: 240 14% 12%;
+    --surface-inset: 240 22% 4%;
+    --hairline: 240 13% 22%;
+
+    /* Accentele deck-urilor A/B/C/D */
+    --deck-a: 188 92% 55%;
+    --deck-b: 322 88% 66%;
+    --deck-c: 156 64% 50%;
+    --deck-d: 38 95% 60%;
+
+    --chart-1: var(--deck-a);
+    --chart-2: var(--deck-c);
+    --chart-3: var(--info);
+    --chart-4: var(--deck-b);
+    --chart-5: var(--deck-d);
+
+    --font-heading: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --sidebar-background: 240 20% 6%;
+    --sidebar-foreground: 220 16% 86%;
+    --sidebar-primary: 258 90% 67%;
+    --sidebar-primary-foreground: 250 30% 8%;
+    --sidebar-accent: 240 14% 14%;
+    --sidebar-accent-foreground: 220 24% 98%;
+    --sidebar-border: 240 13% 15%;
+    --sidebar-ring: 258 90% 67%;
+  }
+
+  .dark {
+    --background: 240 20% 5%;
+    --foreground: 220 24% 96%;
+    --card: 240 17% 8%;
+    --card-foreground: 220 24% 96%;
+    --popover: 240 18% 9%;
+    --popover-foreground: 220 24% 96%;
+    --primary: 258 90% 67%;
+    --primary-foreground: 250 30% 8%;
+    --secondary: 240 14% 14%;
+    --secondary-foreground: 220 24% 96%;
+    --muted: 240 13% 13%;
+    --muted-foreground: 220 12% 63%;
+    --accent: 240 14% 17%;
+    --accent-foreground: 220 24% 98%;
+    --destructive: 356 78% 57%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 45%;
+    --success-foreground: 158 60% 7%;
+    --warning: 38 94% 58%;
+    --warning-foreground: 38 90% 8%;
+    --info: 196 90% 56%;
+    --info-foreground: 200 60% 7%;
+    --border: 240 13% 18%;
+    --input: 240 13% 21%;
+    --ring: 258 90% 67%;
+    --surface: 240 16% 9%;
+    --surface-raised: 240 14% 12%;
+    --surface-inset: 240 22% 4%;
+    --hairline: 240 13% 22%;
+    --deck-a: 188 92% 55%;
+    --deck-b: 322 88% 66%;
+    --deck-c: 156 64% 50%;
+    --deck-d: 38 95% 60%;
+    --chart-1: var(--deck-a);
+    --chart-2: var(--deck-c);
+    --chart-3: var(--info);
+    --chart-4: var(--deck-b);
+    --chart-5: var(--deck-d);
+    --sidebar-background: 240 20% 6%;
+    --sidebar-foreground: 220 16% 86%;
+    --sidebar-primary: 258 90% 67%;
+    --sidebar-primary-foreground: 250 30% 8%;
+    --sidebar-accent: 240 14% 14%;
+    --sidebar-accent-foreground: 220 24% 98%;
+    --sidebar-border: 240 13% 15%;
+    --sidebar-ring: 258 90% 67%;
+  }
+}
+
+/* Skinuri: aceleași componente, doar valorile semantică se schimbă. */
+html[data-skin="daylight"] {
+  color-scheme: light;
+  --background: 40 33% 97%;
+  --foreground: 240 20% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 20% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 20% 12%;
+  --primary: 258 72% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 12% 92%;
+  --secondary-foreground: 240 20% 14%;
+  --muted: 240 10% 91%;
+  --muted-foreground: 240 8% 38%;
+  --accent: 240 12% 90%;
+  --accent-foreground: 240 20% 12%;
+  --destructive: 356 72% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 60% 32%;
+  --success-foreground: 0 0% 100%;
+  --warning: 32 90% 42%;
+  --warning-foreground: 0 0% 100%;
+  --info: 200 80% 38%;
+  --info-foreground: 0 0% 100%;
+  --border: 240 12% 84%;
+  --input: 240 12% 78%;
+  --ring: 258 72% 48%;
+  --surface: 0 0% 100%;
+  --surface-raised: 240 20% 96%;
+  --surface-inset: 240 20% 94%;
+  --hairline: 240 12% 86%;
+  --deck-a: 190 90% 32%;
+  --deck-b: 322 70% 42%;
+  --deck-c: 156 58% 30%;
+  --deck-d: 32 90% 38%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 240 20% 18%;
+  --sidebar-primary: 258 72% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 12% 92%;
+  --sidebar-accent-foreground: 240 20% 12%;
+  --sidebar-border: 240 12% 86%;
+  --sidebar-ring: 258 72% 48%;
+}
+
+html[data-skin="daylight"] .studio-ambient {
+  background:
+    radial-gradient(1100px 540px at 12% -12%, hsl(var(--primary) / 0.10), transparent 62%),
+    radial-gradient(900px 480px at 96% -4%, hsl(var(--deck-b) / 0.07), transparent 58%),
+    radial-gradient(800px 520px at 50% 112%, hsl(var(--deck-a) / 0.06), transparent 62%);
+}
+
+html[data-skin="club"] {
+  --background: 222 60% 6%;
+  --foreground: 200 30% 96%;
+  --card: 222 48% 9%;
+  --card-foreground: 200 30% 96%;
+  --popover: 222 48% 10%;
+  --popover-foreground: 200 30% 96%;
+  --primary: 188 92% 55%;
+  --primary-foreground: 222 60% 6%;
+  --secondary: 222 35% 14%;
+  --secondary-foreground: 200 30% 96%;
+  --muted: 222 32% 12%;
+  --muted-foreground: 200 18% 68%;
+  --accent: 222 35% 16%;
+  --accent-foreground: 200 30% 98%;
+  --destructive: 356 78% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 64% 48%;
+  --success-foreground: 158 60% 7%;
+  --warning: 38 94% 58%;
+  --warning-foreground: 38 90% 8%;
+  --info: 196 90% 60%;
+  --info-foreground: 200 60% 7%;
+  --border: 222 30% 20%;
+  --input: 222 30% 24%;
+  --ring: 188 92% 55%;
+  --surface: 222 48% 8%;
+  --surface-raised: 222 42% 12%;
+  --surface-inset: 222 60% 4%;
+  --hairline: 222 30% 22%;
+  --deck-a: 188 92% 55%;
+  --deck-b: 272 90% 68%;
+  --deck-c: 156 64% 50%;
+  --deck-d: 38 95% 60%;
+  --sidebar-background: 222 60% 5%;
+  --sidebar-foreground: 200 24% 86%;
+  --sidebar-primary: 188 92% 55%;
+  --sidebar-primary-foreground: 222 60% 6%;
+  --sidebar-accent: 222 35% 14%;
+  --sidebar-accent-foreground: 200 30% 98%;
+  --sidebar-border: 222 30% 18%;
+  --sidebar-ring: 188 92% 55%;
+}
+
+html[data-skin="pulse"] {
+  --background: 258 38% 5%;
+  --foreground: 270 24% 96%;
+  --card: 258 32% 8%;
+  --card-foreground: 270 24% 96%;
+  --popover: 258 32% 9%;
+  --popover-foreground: 270 24% 96%;
+  --primary: 280 90% 68%;
+  --primary-foreground: 258 40% 6%;
+  --secondary: 258 26% 14%;
+  --secondary-foreground: 270 24% 96%;
+  --muted: 258 24% 13%;
+  --muted-foreground: 270 14% 68%;
+  --accent: 258 26% 17%;
+  --accent-foreground: 270 24% 98%;
+  --destructive: 356 78% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 64% 48%;
+  --success-foreground: 158 60% 7%;
+  --warning: 38 94% 58%;
+  --warning-foreground: 38 90% 8%;
+  --info: 196 90% 60%;
+  --info-foreground: 200 60% 7%;
+  --border: 258 24% 20%;
+  --input: 258 24% 24%;
+  --ring: 280 90% 68%;
+  --surface: 258 32% 8%;
+  --surface-raised: 258 28% 12%;
+  --surface-inset: 258 40% 3%;
+  --hairline: 258 24% 22%;
+  --deck-a: 188 92% 58%;
+  --deck-b: 310 90% 68%;
+  --deck-c: 156 64% 52%;
+  --deck-d: 38 95% 62%;
+  --sidebar-background: 258 38% 5%;
+  --sidebar-foreground: 270 18% 86%;
+  --sidebar-primary: 280 90% 68%;
+  --sidebar-primary-foreground: 258 40% 6%;
+  --sidebar-accent: 258 26% 14%;
+  --sidebar-accent-foreground: 270 24% 98%;
+  --sidebar-border: 258 24% 16%;
+  --sidebar-ring: 280 90% 68%;
+}
+
+html[data-skin="pulse"] .studio-ambient {
+  background:
+    radial-gradient(1100px 540px at 18% -10%, hsl(var(--primary) / 0.24), transparent 62%),
+    radial-gradient(900px 480px at 92% 8%, hsl(var(--deck-b) / 0.18), transparent 58%),
+    radial-gradient(800px 520px at 50% 112%, hsl(var(--deck-a) / 0.12), transparent 62%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background font-body text-foreground antialiased;
+    font-feature-settings: "cv11" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
+    /* Pe telefon: fără pull-to-refresh peste fadere și fără zoom accidental. */
+    overscroll-behavior-y: contain;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.32);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.7);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar discret, ca panourile să nu pară browser. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: hsl(var(--border));
+  }
+}
+
+@layer components {
+  /* Panouri: singura suprafață pe care stau cardurile și secțiunile. */
+  .panel {
+    @apply relative rounded-2xl border border-border/70 bg-card/70 shadow-panel backdrop-blur-xl;
+  }
+
+  .panel-quiet {
+    @apply relative rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md;
+  }
+
+  .inset {
+    @apply rounded-xl border border-border/60 bg-background/45;
+  }
+
+  .hairline {
+    @apply border-t border-border/60;
+  }
+
+  .caps {
+    @apply font-heading text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground;
+  }
+
+  .num {
+    @apply font-mono tabular-nums;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface-raised px-2.5 py-1 text-[11px] font-medium text-muted-foreground;
+  }
+
+  .screen-title {
+    @apply font-heading text-2xl font-semibold tracking-[-0.03em] sm:text-[28px];
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Fundalul de studio: două luminii laterale foarte slabe, fără zgomot. */
+  .studio-ambient {
+    background:
+      radial-gradient(1100px 540px at 12% -12%, hsl(var(--primary) / 0.16), transparent 62%),
+      radial-gradient(900px 480px at 96% -4%, hsl(var(--deck-b) / 0.09), transparent 58%),
+      radial-gradient(800px 520px at 50% 112%, hsl(var(--deck-a) / 0.07), transparent 62%);
+  }
+
+  .studio-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 75%);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mișcare: intrare scurtă la schimbarea paginii, fără deplasări mari. */
+@keyframes sync-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sync-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes musicsync-vinyl {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Doar opacitate: un transform pe wrapper ar transforma elementele `fixed`
+ * din pagină (crossfader pe mobil) în elemente poziționate față de wrapper.
+ */
+.page-enter {
+  animation: sync-fade 0.3s ease-out both;
+}
+
+.vinyl-spin {
+  animation: musicsync-vinyl 14s linear infinite;
+}
+
+.live-dot {
+  animation: sync-fade 1.8s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .live-dot {
+    animation: none;
+  }
+
+  .vinyl-spin {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Stability mounts only static controls; even their transitions are retired. */
+.audio-stability *, .audio-stability *::before, .audio-stability *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Card de protecție audio: structura Stat Card, în limbajul studioului. */
+.playback-protection { container-type: inline-size; }
+.playback-protection-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(28px, 8cqi, 48px);
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid hsl(var(--border));
+  padding: clamp(24px, 6cqi, 36px);
+  min-height: clamp(210px, 55cqi, 300px);
+  background: radial-gradient(125% 125% at 100% 0%, hsl(var(--primary) / 0.32), hsl(var(--primary) / 0.12) 30%, transparent 62%), hsl(var(--card));
+  color: hsl(var(--foreground));
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04);
+}
+.playback-protection-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+  mask-image: radial-gradient(125% 125% at 100% 0%, black, transparent 72%);
+}
+.playback-protection-number {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 24cqi, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+.playback-protection-accent {
+  opacity: 0.3;
+  transform: scale(0.82);
+  animation: playback-protection-reveal 0.5s ease-out forwards paused;
+}
+.playback-protection[data-revealed] .playback-protection-accent { animation-play-state: running; }
+@keyframes playback-protection-reveal {
+  60% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .playback-protection-accent { animation: none; opacity: 1; transform: none; }
+}
+
+/* Pulse: fundal informativ, fără noduri audio și fără modificarea sunetului. */
+.pulse-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: hsl(var(--background));
+  --pulse-a: 0.5;
+  --pulse-b: 0.5;
+}
+
+.pulse-layer {
+  position: absolute;
+  inset: -18%;
+  opacity: calc(0.18 + var(--pulse-level, 0) * 0.62);
+  transition: opacity 140ms linear;
+}
+
+.pulse-layer-a {
+  background: radial-gradient(58% 58% at 22% 28%, hsl(var(--deck-a) / 0.55), transparent 70%);
+  opacity: calc((0.1 + var(--pulse-level, 0) * 0.7) * (0.35 + var(--pulse-a, 0.5) * 0.65));
+  transform: scale(calc(0.96 + var(--pulse-level, 0) * 0.1));
+}
+
+.pulse-layer-b {
+  background: radial-gradient(58% 58% at 80% 72%, hsl(var(--deck-b) / 0.5), transparent 70%);
+  opacity: calc((0.1 + var(--pulse-level, 0) * 0.7) * (0.35 + var(--pulse-b, 0.5) * 0.65));
+  transform: scale(calc(0.96 + var(--pulse-level, 0) * 0.08));
+}
+
+.pulse-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(78vw, 860px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--primary) / 0.4);
+  opacity: calc(var(--pulse-wave, 0) * 0.5);
+  transform: translate(-50%, -50%) scale(calc(0.72 + var(--pulse-wave, 0) * 0.45));
+  transition: transform 240ms ease-out, opacity 240ms linear;
+}
+
+.pulse-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: radial-gradient(hsl(var(--foreground) / 0.7) 0.5px, transparent 0.5px);
+  background-size: 4px 4px;
+}
+
+.pulse-background[data-paused="true"] .pulse-layer {
+  opacity: 0.16;
+  transform: none;
+}
+
+.pulse-background[data-paused="true"] .pulse-ring {
+  opacity: 0;
+}
+
+.pulse-background[data-motion="off"] .pulse-layer,
+.pulse-background[data-stability="true"] .pulse-layer {
+  opacity: 0.3;
+  transform: none;
+}
+
+.pulse-background[data-motion="off"] .pulse-ring,
+.pulse-background[data-stability="true"] .pulse-ring {
+  opacity: 0;
+}
+
+.pulse-background[data-hidden="true"] .pulse-ring {
+  transition: none;
+}
+
+/* Coperta respiră foarte puțin cu energia masterului, doar în Pulse. */
+.pulse-cover {
+  transform: scale(calc(1 + var(--pulse-level, 0) * 0.025));
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+  box-shadow: 0 28px 64px -32px rgb(0 0 0 / 0.92), 0 0 60px -22px hsl(var(--primary) / 0.42);
+}
+
+.pulse-background[data-stability="true"] ~ * .pulse-cover,
+.audio-stability .pulse-cover {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-layer,
+  .pulse-ring {
+    transition: none;
+  }
+
+  .pulse-cover {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Cardul fizic se tipărește mereu deschis, indiferent de skinul activ. */
+.premium-card {
+  break-inside: avoid;
+  background: #ffffff;
+  color: #171320;
+  border: 1px solid #d9d2e8;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.premium-card-code {
+  font-family: var(--font-mono);
+  letter-spacing: 0.18em;
+  color: #4c1d95;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  .premium-card {
+    box-shadow: none !important;
+  }
+}
