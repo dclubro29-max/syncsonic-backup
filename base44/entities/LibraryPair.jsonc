@@ -1,0 +1,48 @@
+{
+  "name": "LibraryPair",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Codul scurt care leag\u0103 cele dou\u0103 dispozitive."
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "sender",
+        "receiver"
+      ],
+      "description": "Care dispozitiv a scris \u00eenregistrarea."
+    },
+    "offer": {
+      "type": "string",
+      "description": "Descrierea conexiunii trimis\u0103 de dispozitivul care d\u0103 piesele."
+    },
+    "answer": {
+      "type": "string",
+      "description": "R\u0103spunsul dispozitivului care prime\u0219te piesele."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "connecting",
+        "done",
+        "cancelled"
+      ],
+      "default": "waiting"
+    },
+    "track_count": {
+      "type": "number",
+      "description": "C\u00e2te piese urmeaz\u0103 s\u0103 fie trimise."
+    },
+    "total_size": {
+      "type": "number",
+      "description": "Dimensiunea total\u0103 a pieselor, \u00een octe\u021bi."
+    }
+  },
+  "required": [
+    "code",
+    "role"
+  ]
+}
