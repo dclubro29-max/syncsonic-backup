@@ -1,0 +1,132 @@
+{
+  "name": "RemoteCommand",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Dispozitivul care trebuie s\u0103 execute comanda."
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "play",
+        "mix_now",
+        "queue",
+        "toggle",
+        "next",
+        "volume"
+      ],
+      "default": "play",
+      "enumColors": [
+        "green",
+        "purple",
+        "blue",
+        "yellow",
+        "pink",
+        "gray"
+      ]
+    },
+    "track_id": {
+      "type": "string"
+    },
+    "track_name": {
+      "type": "string"
+    },
+    "play_at": {
+      "type": "number",
+      "description": "Momentul pornirii sau al execut\u0103rii, \u00een milisecunde."
+    },
+    "style": {
+      "type": "string",
+      "enum": [
+        "dj",
+        "smooth",
+        "quick"
+      ],
+      "default": "dj",
+      "description": "Stilul comenzii \u201eMixeaz\u0103 acum\u201d.",
+      "enumColors": [
+        "purple",
+        "blue",
+        "yellow"
+      ]
+    },
+    "volume": {
+      "type": "number",
+      "description": "Volumul master cerut, \u00eentre 0 \u0219i 1."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "pending",
+        "preparing",
+        "mixing",
+        "done",
+        "skipped",
+        "failed"
+      ],
+      "default": "scheduled",
+      "enumColors": [
+        "yellow",
+        "blue",
+        "blue",
+        "purple",
+        "green",
+        "gray",
+        "red"
+      ]
+    },
+    "done_at": {
+      "type": "number"
+    },
+    "error_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "device_id",
+    "play_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

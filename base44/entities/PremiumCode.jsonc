@@ -1,0 +1,85 @@
+{
+  "name": "PremiumCode",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "batch_id": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "description": "\u0218ase caractere A\u2013Z \u0219i 0\u20139, normalizate cu majuscule."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "claimed",
+        "disabled"
+      ],
+      "default": "available",
+      "enumColors": [
+        "green",
+        "blue",
+        "gray"
+      ]
+    },
+    "lifetime": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cod care acord\u0103 Premium pe via\u021b\u0103, f\u0103r\u0103 expirare."
+    },
+    "claimed_by_id": {
+      "type": "string"
+    },
+    "claimed_at": {
+      "type": "number"
+    },
+    "activation_id": {
+      "type": "string"
+    },
+    "claim_token": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "default": "RO"
+    },
+    "product": {
+      "type": "string",
+      "default": "SyncSonic Box"
+    },
+    "store": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "batch_id",
+    "code"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

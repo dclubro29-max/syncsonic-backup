@@ -1,0 +1,42 @@
+{
+  "name": "PremiumRateLimit",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "window_start": {
+      "type": "number"
+    },
+    "count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_id",
+    "window_start"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "PremiumActivation",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "batch_id": {
+      "type": "string"
+    },
+    "code_id": {
+      "type": "string"
+    },
+    "code_masked": {
+      "type": "string",
+      "description": "Codul afi\u0219at par\u021bial, f\u0103r\u0103 caracterele din mijloc."
+    },
+    "months": {
+      "type": "number"
+    },
+    "lifetime": {
+      "type": "boolean",
+      "default": false
+    },
+    "first_in_campaign": {
+      "type": "boolean"
+    },
+    "granted_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "expires_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "previous_expires_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "entitlement_id": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "campaign_id",
+    "code_id",
+    "months",
+    "expires_on"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

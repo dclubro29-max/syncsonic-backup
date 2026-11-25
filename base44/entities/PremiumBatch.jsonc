@@ -1,0 +1,61 @@
+{
+  "name": "PremiumBatch",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "default": "RO"
+    },
+    "product": {
+      "type": "string",
+      "default": "SyncSonic Box"
+    },
+    "store": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "lifetime": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lot privat de coduri Premium pe via\u021b\u0103."
+    }
+  },
+  "required": [
+    "campaign_id",
+    "name",
+    "quantity"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

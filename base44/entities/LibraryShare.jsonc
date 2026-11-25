@@ -1,0 +1,46 @@
+{
+  "name": "LibraryShare",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Codul scurt cu care biblioteca este reg\u0103sit\u0103 pe alt dispozitiv."
+    },
+    "count": {
+      "type": "number",
+      "description": "C\u00e2te piese con\u021bine transferul."
+    },
+    "total_size": {
+      "type": "number",
+      "description": "Dimensiunea total\u0103 a pieselor, \u00een octe\u021bi."
+    },
+    "tracks": {
+      "type": "array",
+      "description": "Piesele urcate \u00een spa\u021biul privat, doar cu metadate \u0219i referin\u021ba fi\u0219ierului.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "file_uri": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "code",
+    "tracks"
+  ]
+}

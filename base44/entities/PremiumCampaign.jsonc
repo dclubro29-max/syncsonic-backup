@@ -1,0 +1,78 @@
+{
+  "name": "PremiumCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Identificator stabil al campaniei, folosit de coduri \u0219i activ\u0103ri."
+    },
+    "country": {
+      "type": "string",
+      "default": "RO"
+    },
+    "product": {
+      "type": "string",
+      "default": "SyncSonic Box"
+    },
+    "store_scope": {
+      "type": "string",
+      "description": "Magazinul sau re\u021beaua pentru care a fost tip\u0103rit lotul."
+    },
+    "first_months": {
+      "type": "number",
+      "default": 3
+    },
+    "additional_months": {
+      "type": "number",
+      "default": 1
+    },
+    "pilot_quota": {
+      "type": "number",
+      "default": 2500
+    },
+    "price_lei": {
+      "type": "number",
+      "default": 29.99
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "demo": {
+      "type": "boolean",
+      "default": true
+    },
+    "terms": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "slug"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
