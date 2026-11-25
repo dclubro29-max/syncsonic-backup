@@ -1,0 +1,211 @@
+{
+  "name": "CalibrationSession",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Codul scurt din linkul QR, folosit doar pentru aceast\u0103 prob\u0103."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "capturing",
+        "measuring",
+        "done",
+        "cancelled",
+        "expired"
+      ],
+      "default": "waiting",
+      "enumColors": [
+        "gray",
+        "blue",
+        "purple",
+        "green",
+        "red",
+        "yellow"
+      ]
+    },
+    "zone": {
+      "type": "string"
+    },
+    "outputs": {
+      "type": "array",
+      "description": "Ie\u0219irile m\u0103surate, doar identificator \u0219i etichet\u0103.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "signals": {
+      "type": "array",
+      "description": "Semnalele programate pentru seria curent\u0103, cu momentul relativ la \u00eenceputul seriei.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "at": {
+            "type": "number"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "round": {
+            "type": "number"
+          },
+          "order": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "round_index": {
+      "type": "number",
+      "default": 0
+    },
+    "phone_ready": {
+      "type": "boolean",
+      "default": false
+    },
+    "capture_confirmed": {
+      "type": "boolean",
+      "default": false
+    },
+    "capture_started_at": {
+      "type": "number"
+    },
+    "rounds": {
+      "type": "array",
+      "description": "Rezultatul fiec\u0103rei serii: momentele detectate local \u0219i calitatea lor.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round": {
+            "type": "number"
+          },
+          "order": {
+            "type": "string"
+          },
+          "onsets": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "quality": {
+            "type": "number"
+          },
+          "sample_rate": {
+            "type": "number"
+          },
+          "submitted_at": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "before": {
+          "type": "number"
+        },
+        "after": {
+          "type": "number"
+        },
+        "uncertainty": {
+          "type": "number"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "delays": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deviceId": {
+                "type": "string"
+              },
+              "delay": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "expires_at": {
+      "type": "number"
+    },
+    "closed_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "code",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
