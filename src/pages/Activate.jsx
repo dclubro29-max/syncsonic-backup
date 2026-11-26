@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { workerPreview, workerRequest } from "@/api/workerClient";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,9 @@ export default function Activate() {
     setBusy(true);
     setError("");
     try {
-      const response = await base44.functions.invoke("redeemPremiumCode", { code });
-      const data = response.data;
+      const data = workerPreview
+        ? await workerRequest("premium/redeem", { code })
+        : (await base44.functions.invoke("redeemPremiumCode", { code })).data;
       if (!data?.ok) {
         setError(data?.error || "Codul nu a putut fi activat.");
         return;

@@ -1,6 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
+import { workerPreview, workerRequest } from '@/api/workerClient';
+import { invalidatePremiumStatus } from '@/lib/premiumStatus';
+import { toast } from '@/components/ui/use-toast';
 
 const AuthContext = createContext();
 
@@ -18,6 +21,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
+    if (workerPreview) {
+      setIsLoadingPublicSettings(false);
+      await checkUserAuth();
+      return;
+    }
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
@@ -81,19 +89,25 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = workerPreview ? await workerRequest('account/session') : await base44.auth.me();
       setUser(currentUser);
+      if (workerPreview) setAuthError(null);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      if (workerPreview) {
+        setUser(null);
+        setAuthError(error.status === 401 ? null : { type: 'unknown', message: error.message });
+      } else {
+        console.error('User auth check failed:', error);
+      }
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
       
       // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
+      if (!workerPreview && (error.status === 401 || error.status === 403)) {
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
@@ -102,13 +116,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async (shouldRedirect = true) => {
+    if (workerPreview) {
+      try {
+        await workerRequest('account/logout', {});
+      } catch {
+        toast({ variant: 'destructive', description: 'Deconectarea nu a reușit. Încearcă din nou.' });
+        return;
+      }
+      invalidatePremiumStatus();
+      setUser(null);
+      setIsAuthenticated(false);
+      if (shouldRedirect) window.location.assign('/');
+      return;
+    }
     setUser(null);
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      base44.auth.logout(typeof shouldRedirect === 'string' ? shouldRedirect : window.location.href);
     } else {
       // Just remove the token without redirect
       base44.auth.logout();
@@ -116,6 +143,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
+    if (workerPreview) {
+      window.location.assign('/login?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
+      return;
+    }
     // Use the SDK's redirectToLogin method
     base44.auth.redirectToLogin(window.location.href);
   };

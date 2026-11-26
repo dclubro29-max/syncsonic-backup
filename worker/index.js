@@ -172,7 +172,7 @@ export default {
       let reply;
       if (resource === 'login-request') {
         const data = await body(request);
-        reply = await requestLogin(env, data?.email, request.headers.get('CF-Connecting-IP'), url.origin, now);
+        reply = await requestLogin(env, data?.email, request.headers.get('CF-Connecting-IP'), url.origin, now, fetch, data?.returnTo);
       } else if (resource === 'login-confirm') {
         const data = await body(request);
         reply = await redeemLogin(env.DB, data?.ticket, now);

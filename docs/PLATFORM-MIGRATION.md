@@ -68,3 +68,9 @@ This only publishes the frontend bundle; it does **not** replace the API or make
 - Added an app manifest for SyncSonic.
 - Renamed the npm package to `syncsonic`.
 - Removed the Base44 Vite integration plugin and its editor/analytics/HMR hooks. The Base44 SDK remains temporarily because runtime authentication and data calls still use it.
+# Worker preview and account snapshot
+
+Build with `VITE_SYNCSONIC_WORKER_PREVIEW=true` and serve the build through the Worker to test email login, sign-out, Premium account status, and redemption. This preview still uses the legacy services for other features and is unsuitable for production. Mail delivery requires a verified sender and `RESEND_API_KEY`.
+
+The local importer takes a private JSON snapshot with arrays named `users`, `campaigns`, `codes`, `activations`, and `entitlements`. Create a fresh SQLite database with the Worker migrations applied, set the same `PREMIUM_CODE_KEY` used by the intended destination, then run `node worker/import-snapshot.js <private-snapshot.json> <private-target.sqlite>`. It verifies counts and rejects nonempty targets. It never imports mail tokens, passwords, or sessions. Neither the snapshot nor the resulting database belongs in GitHub. This command verifies the data locally. It does not write to a Cloudflare database.
+

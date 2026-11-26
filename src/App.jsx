@@ -16,6 +16,8 @@ import PageLoader from '@/components/layout/PageLoader';
 import Playback from './pages/Playback';
 import Account from './pages/Account';
 import Login from './pages/Login';
+import WorkerLogin from '@/components/WorkerLogin';
+import { workerPreview } from '@/api/workerClient';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -69,7 +71,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={workerPreview ? <WorkerLogin /> : <Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

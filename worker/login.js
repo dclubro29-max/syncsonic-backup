@@ -5,7 +5,7 @@ const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const accepted = [202, { ok: true }];
 const cookie = (token, age) => `__Host-syncsonic=${token}; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=${age}`;
 
-export async function requestLogin(env, email, address, origin, now, send = fetch) {
+export async function requestLogin(env, email, address, origin, now, send = fetch, returnTo) {
   const normalized = typeof email === 'string' ? email.trim().toLowerCase() : '';
   if (normalized.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return accepted;
   if (!env.LOGIN_EMAIL_FROM || !env.RESEND_API_KEY) return [503, { error: 'login_unavailable' }];
@@ -29,6 +29,8 @@ export async function requestLogin(env, email, address, origin, now, send = fetc
   const hash = await tokenHash(token);
   await db.prepare('INSERT INTO login_challenges VALUES (?, ?, ?)').bind(hash, user.id, now + LINK_MS).run();
   const link = new URL('/login', origin);
+  if (typeof returnTo === 'string' && returnTo.length <= 2048 && /^\/(?!\/)/.test(returnTo)
+    && !/[^\x20-\x7E]|\\/.test(returnTo)) link.searchParams.set('returnTo', returnTo);
   link.hash = new URLSearchParams({ ticket: token }).toString();
   try {
     const response = await send('https://api.resend.com/emails', {

@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +14,7 @@ import { LogOut, Palette, ShieldCheck, Ticket, UserRound } from "lucide-react";
 
 /** Singurul avatar al aplicației. Meniul scurt duce la cont, cod și aspect. */
 export default function AccountMenu() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const initial = (user?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
   return (
@@ -87,7 +86,7 @@ export default function AccountMenu() {
           {user ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => base44.auth.logout("/")} className="gap-2">
+              <DropdownMenuItem onSelect={() => void logout("/")} className="gap-2">
                 <LogOut className="h-4 w-4" />
                 Deconectare
               </DropdownMenuItem>

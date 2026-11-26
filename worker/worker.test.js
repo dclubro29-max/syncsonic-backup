@@ -6,8 +6,39 @@ import test from 'node:test';
 import worker from './index.js';
 import { premiumAccount, premiumCodeHash, redeemPremium } from './premium.js';
 import { requestLogin } from './login.js';
+import { importSnapshot } from './import-snapshot.js';
 
 const origin = 'https://syncsonic.example';
+
+test('snapshot import preserves rights, masks codes, rejects retries and rolls back inconsistent data', async () => {
+  const sql = new DatabaseSync(':memory:');
+  const key = 'synthetic-key-for-snapshot-import-tests';
+  const expires_on = '9999-12-31';
+  const snapshot = {
+    users: [{ id: 'user', email: 'user@example.test', role: 'user' }],
+    campaigns: [{ id: 'campaign', slug: 'syncsonic-box-demo-ro', name: 'Test campaign' }],
+    codes: [{ id: 'code', campaign_id: 'campaign', code: 'ABC123', status: 'claimed', lifetime: true }],
+    activations: [{ code_id: 'code', user_id: 'user', campaign_id: 'campaign', months: 0,
+      created_date: '2026-10-10T12:30:00.000Z', expires_on, lifetime: true, first_in_campaign: true }],
+    entitlements: [{ user_id: 'user', campaign_id: 'campaign', expires_on, lifetime: true, activation_count: 1 }],
+  };
+  try {
+    for (const file of ['0001_accounts_and_sessions.sql', '0002_premium.sql']) {
+      sql.exec(readFileSync(new URL('./migrations/' + file, import.meta.url), 'utf8'));
+    }
+    await assert.rejects(importSnapshot(sql, { ...snapshot, entitlements: [] }, key), /counts/);
+    assert.equal(sql.prepare('SELECT COUNT(*) AS count FROM users').get().count, 0);
+    const counts = await importSnapshot(sql, snapshot, key);
+    assert.deepEqual(Object.values(counts), [1, 1, 1, 1, 1]);
+    const code = sql.prepare('SELECT * FROM premium_codes').get();
+    assert.equal(code.code_hash, await premiumCodeHash('ABC123', key));
+    assert.equal(code.code_masked, '••••23');
+    assert.equal(code.disabled, 1);
+    assert.deepEqual({ ...sql.prepare('SELECT lifetime, expires_on, activation_count FROM premium_entitlements').get() },
+      { lifetime: 1, expires_on, activation_count: 1 });
+    await assert.rejects(importSnapshot(sql, snapshot, key), /not empty/);
+  } finally { sql.close(); }
+});
 
 function fixture() {
   const sql = new DatabaseSync(':memory:');
@@ -51,7 +82,7 @@ test('verified email grants an expiring, single-use login and logout revokes the
   const env = { DB, LOGIN_EMAIL_FROM: 'test@example.test', RESEND_API_KEY: 'synthetic-test-value' };
   const sent = [];
   const deliver = async (_url, options) => { sent.push(JSON.parse(options.body)); return new Response(null, { status: 200 }); };
-  const request = email => requestLogin(env, email, 'test-address', origin, now, deliver);
+  const request = email => requestLogin(env, email, 'test-address', origin, now, deliver, '/activate');
   try {
     sql.prepare("UPDATE users SET role = 'admin' WHERE id = 'b'").run();
     assert.deepEqual(await request('unknown@example.test'), await request('b@example.test'));
@@ -61,7 +92,7 @@ test('verified email grants an expiring, single-use login and logout revokes the
     assert.equal(sent.length, 1);
     const link = new URL(sent[0].text.trim().split('\n').at(-1));
     const ticket = new URLSearchParams(link.hash.slice(1)).get('ticket');
-    assert.equal(link.search, '');
+    assert.equal(link.searchParams.get('returnTo'), '/activate');
     assert.equal(sql.prepare('SELECT token_hash FROM login_challenges').get().token_hash.length, 64);
     const confirm = { user: null, method: 'POST', data: { ticket } };
     assert.equal((await send('account/login-confirm', { ...confirm, requestOrigin: 'https://other.example' })).status, 403);
