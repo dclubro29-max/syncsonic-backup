@@ -48,6 +48,10 @@ A D1 schema and API replacement must be implemented before removing the Base44 S
 
 ## Deployment settings
 
+The draft Worker in `worker/` implements session lookup with hashed session tokens, remote-pairing state and commands, and phone calibration sessions. `worker/wrangler.example.jsonc` shows the static asset, API routing, and D1 bindings. The checked-in integration tests exercise its SQL and request handling using in-memory SQLite. Run them with `node --test worker/worker.test.js`.
+
+The Worker does not yet issue sessions or handle sign-in, registration, password recovery, OAuth, or MFA. Its routes are available for isolated testing with seeded sessions. The React frontend still uses the original API client until the remaining routes and import have been verified. The example configuration requires a real D1 binding before deployment.
+
 For the current Vite frontend, Cloudflare Pages' React (Vite) build settings are:
 
 - Build command: `npm run build`

@@ -25,5 +25,7 @@ jobs:
         run: npm run build
       - name: Lint
         run: npm run lint
+      - name: Test Worker routes and database rules
+        run: node --test worker/worker.test.js
       - name: Type check
         run: npm run typecheck
