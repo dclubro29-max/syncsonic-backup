@@ -1,9 +1,9 @@
 /**
- * Cod QR minim, generat local, pentru linkul scurt de calibrare.
+ * Cod QR minim, generat local, pentru linkuri scurte.
  *
  * Versiunea 4, corecție L, un singur bloc de date: 80 de cuvinte de date și
  * 20 de corecție. Este suficient pentru un link de forma
- * `https://mussicsync.base44.app/calibrate?c=ABCD1234` și nu trimite nimic
+ * `https://syncsonic.example/calibrate?c=ABCD1234` și nu trimite nimic
  * către un serviciu extern.
  */
 const SIZE = 33;
@@ -62,7 +62,7 @@ function formatBits(mask) {
 
 function dataCodewords(text) {
   const bytes = Array.from(new TextEncoder().encode(text));
-  if (bytes.length > MAX_BYTES) throw new Error('Linkul de calibrare este prea lung pentru codul QR local.');
+  if (bytes.length > MAX_BYTES) throw new Error('Linkul este prea lung pentru codul QR local.');
   const bits = [];
   const push = (value, length) => {
     for (let i = length - 1; i >= 0; i -= 1) bits.push((value >>> i) & 1);

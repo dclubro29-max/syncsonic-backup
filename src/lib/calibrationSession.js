@@ -1,8 +1,6 @@
 import { base44 } from '@/api/base44Client';
-import { QR_MAX_BYTES } from '@/lib/qrCode';
 
 export const SESSION_TTL_MS = 10 * 60 * 1000;
-export const PUBLISHED_ORIGIN = 'https://mussicsync.base44.app';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function createSessionCode() {
@@ -15,14 +13,8 @@ export function createSessionCode() {
   return Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('');
 }
 
-export function sessionLink(code) {
-  const path = `/calibrate?c=${encodeURIComponent(code)}`;
-  const origin = typeof window !== 'undefined' && window.location?.origin
-    ? window.location.origin
-    : PUBLISHED_ORIGIN;
-  const local = `${origin}${path}`;
-  if (new TextEncoder().encode(local).length <= QR_MAX_BYTES) return local;
-  return `${PUBLISHED_ORIGIN}${path}`;
+export function sessionLink(code, origin = window.location.origin) {
+  return new URL(`/calibrate?c=${encodeURIComponent(code)}`, origin).href;
 }
 
 export function isSessionExpired(session) {
