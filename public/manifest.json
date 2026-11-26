@@ -1,0 +1,17 @@
+{
+  "name": "SyncSonic",
+  "short_name": "SyncSonic",
+  "description": "Mixer DJ cu redare sincronizată pe mai multe boxe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [
+    {
+      "src": "/syncsonic-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
