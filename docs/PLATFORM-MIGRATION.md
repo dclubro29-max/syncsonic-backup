@@ -50,7 +50,9 @@ A D1 schema and API replacement must be implemented before removing the Base44 S
 
 The draft Worker in `worker/` implements session lookup with hashed session tokens, remote-pairing state and commands, and phone calibration sessions. `worker/wrangler.example.jsonc` shows the static asset, API routing, and D1 bindings. The checked-in integration tests exercise its SQL and request handling using in-memory SQLite. Run them with `node --test worker/worker.test.js`.
 
-The Worker does not yet issue sessions or handle sign-in, registration, password recovery, OAuth, or MFA. Its routes are available for isolated testing with seeded sessions. The React frontend still uses the original API client until the remaining routes and import have been verified. The example configuration requires a real D1 binding before deployment.
+The Worker can issue and revoke sessions for existing non-admin users via single-use email links. Set `LOGIN_EMAIL_FROM` to a verified sender and store `RESEND_API_KEY` as a Worker secret. Tests use a stub sender. Admin authentication, MFA, OAuth and user provisioning still need a production implementation. The React frontend still uses the original API client until the remaining routes and import have been verified.
+
+Premium account reads and code redemption are implemented in the Worker. Code digests are keyed with `PREMIUM_CODE_KEY`, a Worker secret of at least 32 characters. Import existing users with their original IDs and validated, unique email addresses before importing campaign, activation and entitlement records. Store imported codes as HMAC digests and retain existing redemption history. The Premium admin routes and batch-card workflow still need to be ported. The example configuration requires a real D1 binding before deployment.
 
 For the current Vite frontend, Cloudflare Pages' React (Vite) build settings are:
 

@@ -1,4 +1,6 @@
 import { sessionUser } from './session.js';
+import { premiumAccount, redeemPremium } from './premium.js';
+import { logout, redeemLogin, requestLogin } from './login.js';
 
 const devicePattern = /^[A-Za-z0-9_-]{1,64}$/;
 const calibrationPattern = /^[A-Z2-9]{8}$/;
@@ -9,8 +11,8 @@ const calibrationFields = new Set(['status', 'signals', 'round_index', 'phone_re
   'capture_started_at', 'rounds', 'result', 'closed_at']);
 const MAX_BODY = 192 * 1024;
 
-function json(value, status = 200) {
-  return Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } });
+function json(value, status = 200, cookie) {
+  return Response.json(value, { status, headers: { 'Cache-Control': 'no-store', ...(cookie ? { 'Set-Cookie': cookie } : {}) } });
 }
 
 async function body(request) {
@@ -164,11 +166,30 @@ export default {
       return json({ error: 'invalid_origin' }, 403);
     }
     const now = Date.now();
-    const user = await sessionUser(request, env.DB, now);
-    if (!user) return json({ error: 'authentication_required' }, 401);
     const [, , version, area, resource, key, extra] = url.pathname.split('/');
     if (version !== 'v1' || extra) return json({ error: 'not_found' }, 404);
+    if (area === 'account' && !key && request.method === 'POST') {
+      let reply;
+      if (resource === 'login-request') {
+        const data = await body(request);
+        reply = await requestLogin(env, data?.email, request.headers.get('CF-Connecting-IP'), url.origin, now);
+      } else if (resource === 'login-confirm') {
+        const data = await body(request);
+        reply = await redeemLogin(env.DB, data?.ticket, now);
+      } else if (resource === 'logout') reply = await logout(env.DB, request);
+      if (reply) return json(reply[1], reply[0], reply[2]);
+    }
+    const user = await sessionUser(request, env.DB, now);
+    if (!user) return json({ error: 'authentication_required' }, 401);
     if (area === 'account' && resource === 'session' && !key && request.method === 'GET') return json(user);
+    if (area === 'premium' && resource === 'account' && !key && request.method === 'GET') {
+      return json(await premiumAccount(env.DB, user.id, now));
+    }
+    if (area === 'premium' && resource === 'redeem' && !key && request.method === 'POST') {
+      const data = await body(request);
+      const [status, response] = await redeemPremium(env.DB, user.id, data?.code, env.PREMIUM_CODE_KEY, now);
+      return json(response, status);
+    }
     if (area === 'remote') return remote(request, env.DB, user.id, resource, key, now);
     if (area === 'calibration' && resource === 'sessions') return calibration(request, env.DB, user.id, key, now);
     return json({ error: 'not_found' }, 404);

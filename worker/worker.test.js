@@ -4,16 +4,21 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import worker from './index.js';
+import { premiumAccount, premiumCodeHash, redeemPremium } from './premium.js';
+import { requestLogin } from './login.js';
 
 const origin = 'https://syncsonic.example';
 
 function fixture() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(readFileSync(new URL('./migrations/0001_accounts_and_sessions.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('./migrations/0002_premium.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('./migrations/0003_login_challenges.sql', import.meta.url), 'utf8'));
   const DB = { prepare(query) {
     const statement = sql.prepare(query);
     return { bind(...values) {
-      return { first: async () => statement.get(...values), all: async () => ({ results: statement.all(...values) }) };
+      return { first: async () => statement.get(...values), all: async () => ({ results: statement.all(...values) }),
+        run: async () => statement.run(...values) };
     } };
   } };
   for (const name of ['a', 'b', 'expired']) {
@@ -26,7 +31,7 @@ function fixture() {
     method, headers: { 'content-type': 'application/json', Origin: requestOrigin,
       ...(user ? { cookie: `__Host-syncsonic=${user[0].repeat(43)}` } : {}) }, body: data ? JSON.stringify(data) : undefined,
   }), { DB });
-  return { send, sql };
+  return { send, sql, DB };
 }
 
 test('session endpoint rejects anonymous and expired sessions', async () => {
@@ -37,6 +42,71 @@ test('session endpoint rejects anonymous and expired sessions', async () => {
     const response = await send('account/session');
     assert.equal(response.status, 200);
     assert.equal((await response.json()).id, 'a');
+  } finally { sql.close(); }
+});
+
+test('verified email grants an expiring, single-use login and logout revokes the session', async () => {
+  const { DB, sql, send } = fixture();
+  const now = Date.now();
+  const env = { DB, LOGIN_EMAIL_FROM: 'test@example.test', RESEND_API_KEY: 'synthetic-test-value' };
+  const sent = [];
+  const deliver = async (_url, options) => { sent.push(JSON.parse(options.body)); return new Response(null, { status: 200 }); };
+  const request = email => requestLogin(env, email, 'test-address', origin, now, deliver);
+  try {
+    sql.prepare("UPDATE users SET role = 'admin' WHERE id = 'b'").run();
+    assert.deepEqual(await request('unknown@example.test'), await request('b@example.test'));
+    assert.equal(sent.length, 0);
+    assert.equal((await request('A@example.test'))[0], 202);
+    await request('a@example.test');
+    assert.equal(sent.length, 1);
+    const link = new URL(sent[0].text.trim().split('\n').at(-1));
+    const ticket = new URLSearchParams(link.hash.slice(1)).get('ticket');
+    assert.equal(link.search, '');
+    assert.equal(sql.prepare('SELECT token_hash FROM login_challenges').get().token_hash.length, 64);
+    const confirm = { user: null, method: 'POST', data: { ticket } };
+    assert.equal((await send('account/login-confirm', { ...confirm, requestOrigin: 'https://other.example' })).status, 403);
+    const results = await Promise.all([send('account/login-confirm', confirm), send('account/login-confirm', confirm)]);
+    assert.deepEqual(results.map(response => response.status).sort(), [200, 401]);
+    const setCookie = results.find(response => response.ok).headers.get('set-cookie');
+    assert.match(setCookie, /Secure; HttpOnly; SameSite=Lax/);
+    const rawCookie = setCookie.split(';')[0];
+    const authorized = (path, method = 'GET') => worker.fetch(new Request(`${origin}/api/v1/account/${path}`, {
+      method, headers: { cookie: rawCookie, Origin: origin },
+    }), env);
+    assert.equal((await authorized('session')).status, 200);
+    assert.equal((await authorized('logout', 'POST')).status, 200);
+    assert.equal((await authorized('session')).status, 401);
+  } finally { sql.close(); }
+});
+
+test('Premium claims are atomic and preserve calendar terms and lifetime access', async () => {
+  const { DB, sql } = fixture();
+  const key = 'synthetic-premium-key-used-only-in-tests';
+  const now = Date.UTC(2026, 0, 31, 12);
+  try {
+    sql.prepare(`INSERT INTO premium_campaigns(id,slug,name,first_months,additional_months)
+      VALUES ('test', 'syncsonic-box-demo-ro', 'Test', 3, 1)`).run();
+    for (const [code, lifetime] of [['FIRST1', 0], ['NEXT02', 0], ['LIFE03', 1], ['LAST04', 0]]) {
+      sql.prepare(`INSERT INTO premium_codes(id,campaign_id,code_hash,code_masked,lifetime)
+        VALUES (?, 'test', ?, ?, ?)`).run(code, await premiumCodeHash(code, key), code.slice(0, 2) + '••' + code.slice(-2), lifetime);
+    }
+    const claims = await Promise.all(['a', 'b'].map(user => redeemPremium(DB, user, 'FIRST1', key, now)));
+    assert.deepEqual(claims.map(([status]) => status).sort(), [200,409]);
+    const winner = claims[0][0] === 200 ? 'a' : 'b';
+    const first = claims.find(([status]) => status === 200)[1];
+    assert.equal(first.expires_on, '2026-04-30');
+    assert.equal((await redeemPremium(DB, winner, 'FIRST1', key, now))[1].idempotent, true);
+    const [, next] = await redeemPremium(DB, winner, 'NEXT02', key, now);
+    assert.equal(next.months, 1);
+    assert.equal(next.granted_from, '2026-05-01');
+    assert.equal(next.expires_on, '2026-06-01');
+    assert.equal((await redeemPremium(DB, winner, 'LIFE03', key, now))[1].lifetime, true);
+    assert.equal((await redeemPremium(DB, winner, 'LAST04', key, now))[1].already_lifetime, true);
+    const account = await premiumAccount(DB, winner, now);
+    assert.equal(account.entitlement.activation_count, 3);
+    assert.equal(account.entitlement.expires_on, '9999-12-31');
+    assert.equal(account.history.length, 3);
+    assert.equal(sql.prepare('SELECT count(*) AS count FROM premium_activations').get().count, 3);
   } finally { sql.close(); }
 });
 
