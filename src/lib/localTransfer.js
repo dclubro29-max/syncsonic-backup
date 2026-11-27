@@ -174,7 +174,6 @@ export async function startSender({ code, tracks, onState }) {
       onState({ phase: "waiting" });
 
       const peer = await findPeer(code, "receiver", isCancelled, "answer");
-      if (peer.answer?.includes('a=max-message-size:262144')) pc.setMaxMessageSize(262144);
       if (cancelled) return;
       if (!peer) {
         onState({
@@ -280,9 +279,8 @@ export async function startReceiver({ code, onState, onFiles }) {
       }
 
       const safeCount = (value) => (Number.isSafeInteger(value) && value > 0 ? value : 0);
-      total = safeCount(sender.track_count) || safeCount(sender.answer?.track_count) || 0;
-      totalBytes = safeCount(sender.total_size) || safeCount(sender.answer?.total_size) || 0;
-      totalBytes = sender.total_size || 0;
+      total = safeCount(sender.track_count);
+      totalBytes = safeCount(sender.total_size);
       await pc.setRemoteDescription(JSON.parse(sender.offer));
       await pc.setLocalDescription(await pc.createAnswer());
       await gather(pc);
