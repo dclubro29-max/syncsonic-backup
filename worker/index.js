@@ -2,6 +2,7 @@ import { sessionUser } from './session.js';
 import { premiumAccount, redeemPremium } from './premium.js';
 import { logout, redeemLogin, requestLogin } from './login.js';
 import { adminSignIn } from './admin-access.js';
+import { libraryPair } from './library.js';
 
 const devicePattern = /^[A-Za-z0-9_-]{1,64}$/;
 const calibrationPattern = /^[A-Z2-9]{8}$/;
@@ -175,7 +176,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if (!['GET', 'POST', 'PUT', 'PATCH'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405);
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405);
     if (request.method !== 'GET' && request.headers.get('Origin') !== url.origin) {
       return json({ error: 'invalid_origin' }, 403);
     }
@@ -200,6 +201,16 @@ export default {
     const user = await sessionUser(request, env.DB, now);
     if (!user) return json({ error: 'authentication_required' }, 401);
     if (area === 'account' && resource === 'session' && !key && request.method === 'GET') return json(user);
+    if (area === 'account' && resource === 'profile' && !key && request.method === 'PATCH') {
+      const data = await body(request);
+      if (!['studio', 'daylight', 'club', 'pulse'].includes(data?.skin)) return json({ error: 'invalid_skin' }, 400);
+      await env.DB.prepare('UPDATE users SET skin = ? WHERE id = ?').bind(data.skin, user.id).run();
+      return json({ skin: data.skin });
+    }
+    if (area === 'library' && resource === 'pairs') {
+      const [status, response] = await libraryPair(request, env.DB, user.id, key, now, body);
+      return json(response, status);
+    }
     if (area === 'premium' && resource === 'account' && !key && request.method === 'GET') {
       return json(await premiumAccount(env.DB, user.id, now));
     }

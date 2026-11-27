@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDj } from "@/lib/djContext";
 import { getTracks, formatSize } from "@/lib/trackStore";
 import { makePairCode, startSender } from "@/lib/localTransfer";
+import { workerPreview } from "@/api/workerClient";
 import { Button } from "@/components/ui/button";
 import TransferProgress from '@/components/library/TransferProgress';
 import { Wifi, Copy, Check, X } from "lucide-react";
@@ -77,8 +78,9 @@ export default function LibraryShareCode() {
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
         Pornește transferul aici și primești un cod. Introdu codul pe celălalt dispozitiv, ține
-        ambele deschise în același Wi-Fi. Piesele merg direct între ele — fără urcare în cloud, deci
-        fără credite de integrare. Dacă reiei transferul, piesele deja salvate nu se retrimit.
+        ambele deschise în același Wi-Fi. Piesele merg direct între dispozitive.
+        Dacă reiei transferul, piesele deja salvate nu se retrimit.
+        {workerPreview && " Conectează ambele dispozitive în același cont SyncSonic."}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">

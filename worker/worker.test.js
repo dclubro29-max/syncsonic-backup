@@ -85,6 +85,7 @@ function fixture() {
   sql.exec(readFileSync(new URL('./migrations/0001_accounts_and_sessions.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0002_premium.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0003_login_challenges.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('./migrations/0004_library_pairs.sql', import.meta.url), 'utf8'));
   const DB = { prepare(query) {
     const statement = sql.prepare(query);
     return { bind(...values) {
@@ -113,6 +114,37 @@ test('session endpoint rejects anonymous and expired sessions', async () => {
     const response = await send('account/session');
     assert.equal(response.status, 200);
     assert.equal((await response.json()).id, 'a');
+  } finally { sql.close(); }
+});
+
+test('library signals and saved appearance stay scoped to the account', async () => {
+  const { send, sql } = fixture();
+  const code = 'ABCD23';
+  const offer = JSON.stringify({ type: 'offer', sdp: 'v=0\r\n' });
+  const answer = JSON.stringify({ type: 'answer', sdp: 'v=0\r\n' });
+  const endpoint = 'library/pairs';
+  try {
+    const create = { method: 'POST', data: { code, role: 'sender', track_count: 2, total_size: 42 } };
+    const sender = await send(endpoint, create);
+    assert.equal(sender.status, 201);
+    const path = endpoint + '/' + (await sender.json()).id;
+    assert.equal((await send(endpoint, create)).status, 409);
+    assert.equal((await send(path, { method: 'PATCH', data: { offer }, user: 'b' })).status, 404);
+    assert.equal((await send(path, { method: 'PATCH', data: { offer } })).status, 200);
+    const lookup = endpoint + '?code=' + code + '&role=sender';
+    assert.deepEqual((await (await send(lookup, { user: 'b' })).json()).items, []);
+    assert.equal((await (await send(lookup)).json()).items[0].offer, offer);
+    const join = { method: 'POST', data: { code, role: 'receiver', answer } };
+    assert.equal((await send(endpoint, { ...join, user: 'b' })).status, 404);
+    assert.equal((await send(endpoint, join)).status, 201);
+    assert.equal((await send(path, { method: 'DELETE', user: 'b' })).status, 200);
+    assert.equal((await (await send(lookup)).json()).items.length, 1);
+    assert.equal((await send(path, { method: 'DELETE' })).status, 200);
+    assert.deepEqual((await (await send(lookup)).json()).items, []);
+    assert.equal((await send('account/profile', { method: 'PATCH', data: { skin: 'club', role: 'admin' } })).status, 200);
+    const profile = await (await send('account/session')).json();
+    assert.equal(profile.skin, 'club');
+    assert.equal(profile.role, 'user');
   } finally { sql.close(); }
 });
 

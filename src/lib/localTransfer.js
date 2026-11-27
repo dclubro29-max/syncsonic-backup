@@ -1,12 +1,12 @@
 import { base44 } from "@/api/base44Client";
+import { workerPreview, workerRequest } from "@/api/workerClient";
 import { sendLibraryTracks, attachLibraryReceiver } from '@/lib/libraryTransferData';
 import { keepTransferAwake as keepAwake, watchTransferConnection } from '@/lib/transferSession';
 
 /**
  * Transfer direct între două dispozitive, în aceeași rețea Wi-Fi.
  * Piesele nu trec prin niciun spațiu de stocare: browserul cel care dă le
- * trimite browserului care primește, iar prin serviciile Base44 circulă doar
- * codul de împerechere. Nu se consumă credite de integrare.
+ * trimite browserului care primește. Serverul intermediază doar conectarea.
  *
  * Ordinea contează: dispozitivul care dă scrie mai întâi codul, apoi oferta.
  * Cel care primește așteaptă până când oferta chiar există, în loc să renunțe
@@ -36,6 +36,12 @@ export function makePairCode() {
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const pairs = workerPreview ? {
+  filter: ({ code, role }) => workerRequest("library/pairs?" + new URLSearchParams({ code, role })),
+  create: (data) => workerRequest("library/pairs", data),
+  update: (id, data) => workerRequest("library/pairs/" + encodeURIComponent(id), data, "PATCH"),
+  delete: (id) => workerRequest("library/pairs/" + encodeURIComponent(id), undefined, "DELETE"),
+} : base44.entities.LibraryPair;
 
 /** Așteaptă descrierea completă a conexiunii, cu tot cu adrese. */
 function gather(pc) {
@@ -80,7 +86,7 @@ async function findPeer(code, role, isCancelled, needed, waitMs = WAIT_MS) {
   const deadline = Date.now() + waitMs;
   while (Date.now() < deadline && !isCancelled()) {
     try {
-      const { items } = await base44.entities.LibraryPair.filter(
+      const { items } = await pairs.filter(
         { code, role },
         { sort: "-created_date", limit: 1 }
       );
@@ -97,7 +103,7 @@ async function findPeer(code, role, isCancelled, needed, waitMs = WAIT_MS) {
 async function forget(id) {
   if (!id) return;
   try {
-    await base44.entities.LibraryPair.delete(id);
+    await pairs.delete(id);
   } catch (e) {
     /* rămâne în urmă o înregistrare de împerechere, fără efect */
   }
@@ -114,7 +120,7 @@ export async function startSender({ code, tracks, onState }) {
 
   let record;
   try {
-    record = await base44.entities.LibraryPair.create({
+    record = await pairs.create({
       code, role: 'sender', status: 'waiting', track_count: tracks.length,
       total_size: tracks.reduce((sum, t) => sum + t.blob.size, 0),
     });
@@ -161,7 +167,7 @@ export async function startSender({ code, tracks, onState }) {
       await pc.setLocalDescription(await pc.createOffer());
       await gather(pc);
       if (cancelled) return;
-      await base44.entities.LibraryPair.update(record.id, {
+      await pairs.update(record.id, {
         offer: JSON.stringify(pc.localDescription),
         status: "connecting",
       });
@@ -281,7 +287,7 @@ export async function startReceiver({ code, onState, onFiles }) {
       await pc.setLocalDescription(await pc.createAnswer());
       await gather(pc);
       if (cancelled) return;
-      const record = await base44.entities.LibraryPair.create({
+      const record = await pairs.create({
         code,
         role: "receiver",
         answer: JSON.stringify(pc.localDescription),

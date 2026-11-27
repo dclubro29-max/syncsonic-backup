@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import StatusPill from "@/components/ui-kit/StatusPill";
 import { formatTime } from "@/lib/audioAnalysis";
 import { parseTrackName } from "@/lib/trackName";
-import { Crown, Loader2, Music2, Pause, Play, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Crown, Music2, Pause, Play, SkipForward, Volume2, VolumeX } from "lucide-react";
 
 /** Starea gazdei, citită de pe telefon; progresul avansează local între actualizări. */
 const COMMAND_STATUS = {
@@ -59,12 +59,12 @@ export default function RemoteNowPlaying({ device, command, large, busy, onToggl
     ? (Number(now.progress) || 0) + (clock - (Number(now.updated_at) || clock)) / 1000
     : Number(now.progress) || 0;
   const progress = duration ? Math.min(duration, Math.max(0, elapsed)) : Math.max(0, elapsed);
-  const age = Date.now() - (Number(now.updated_at) || 0);
+  const age = Date.now() - (Number(device?.updated_at) || Number(now.updated_at) || 0);
   const online = age < 60000;
   const reconnecting = !online && age < 180000;
 
   return (
-    <section className={`panel ${large ? "p-6" : "p-5"}`}>
+    <section className={`panel bg-gradient-to-b from-primary/10 via-card to-card ${large ? "p-6" : "p-5"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="caps">Gazda</p>
@@ -114,17 +114,17 @@ export default function RemoteNowPlaying({ device, command, large, busy, onToggl
         </div>
       </div>
 
-      <div className={`mt-4 flex items-center justify-center gap-4 ${large ? "gap-6" : ""}`}>
+      <div className="relative mx-auto mt-5 grid w-fit grid-cols-[3rem_auto_3rem] items-center gap-3 rounded-full border border-border/60 bg-background/40 p-2">
+        <span aria-hidden="true" />
         <Button
           size="icon"
-          className={`rounded-full shadow-glow ${large ? "h-20 w-20" : "h-16 w-16"}`}
+          className={`rounded-full shadow-glow motion-safe:transition-transform motion-safe:active:scale-95 ${large ? "h-20 w-20" : "h-16 w-16"}`}
           onClick={onToggle}
-          disabled={busy}
+          disabled={busy || !online}
+          aria-busy={busy}
           aria-label={now.is_playing ? "Pauză" : "Redă"}
         >
-          {busy ? (
-            <Loader2 className={`animate-spin ${large ? "h-7 w-7" : "h-6 w-6"}`} />
-          ) : now.is_playing ? (
+          {now.is_playing ? (
             <Pause className={large ? "h-8 w-8" : "h-7 w-7"} />
           ) : (
             <Play className={`ml-0.5 ${large ? "h-8 w-8" : "h-7 w-7"}`} />
@@ -133,9 +133,9 @@ export default function RemoteNowPlaying({ device, command, large, busy, onToggl
         <Button
           variant="outline"
           size="icon"
-          className={`rounded-full border-border/80 ${large ? "h-14 w-14" : "h-12 w-12"}`}
+          className="h-12 w-12 rounded-full border-transparent bg-transparent motion-safe:transition-transform motion-safe:active:scale-95"
           onClick={onNext}
-          disabled={busy}
+          disabled={busy || !online}
           aria-label="Următoarea"
         >
           <SkipForward className={large ? "h-6 w-6" : "h-5 w-5"} />
@@ -148,6 +148,7 @@ export default function RemoteNowPlaying({ device, command, large, busy, onToggl
           value={[volume]}
           max={100}
           step={1}
+          disabled={!online}
           onValueChange={([value]) => setVolume(value)}
           onValueCommit={([value]) => onVolume?.(value / 100)}
           aria-label="Volum pe gazdă"

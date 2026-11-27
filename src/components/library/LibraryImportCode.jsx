@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDj } from "@/lib/djContext";
 import { startReceiver } from "@/lib/localTransfer";
+import { workerPreview } from "@/api/workerClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import TransferProgress from '@/components/library/TransferProgress';
@@ -70,6 +71,7 @@ export default function LibraryImportCode() {
       <p className="text-xs leading-relaxed text-muted-foreground">
         Ai un cod de la celălalt dispozitiv? Introdu-l aici, cu transferul pornit pe celălalt
         dispozitiv și ambele în același Wi-Fi. Piesele vin direct, fără descărcare din cloud.
+        {workerPreview && " Conectează ambele dispozitive în același cont SyncSonic."}
       </p>
 
       <form
