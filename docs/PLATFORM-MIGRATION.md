@@ -1,5 +1,13 @@
 # SyncSonic platform migration
 
+## Preview using Cloudflare
+
+Build with `VITE_SYNCSONIC_WORKER_PREVIEW=true` to route sign-in, Premium redemption, remote commands, and speaker calibration through the Worker. The phone and host must use the same SyncSonic account. The host claims each due command in the database before executing it, so two tabs cannot play the same command.
+
+Configure a Cloudflare Access self-hosted application to protect both `/admin-sign-in` and `/api/v1/admin/sign-in` on the preview hostname. Use the same Access application audience for both paths and require MFA at the identity provider or in the Access policy. Set `ADMIN_ACCESS_ISSUER` to the team origin and `ADMIN_ACCESS_AUDIENCE` to the application audience. The Worker issues a short-lived session only after validating the signed assertion and finding an imported administrator with the matching email. The ordinary email link remains limited to non-admin accounts.
+
+Before publication, migrate the Premium administration and library pairing flows, verify the actual dataset in an isolated D1 database, and validate audio and authentication using real devices and the test hostname.
+
 ## Current state
 
 The React/Vite frontend is portable, but the application is **not yet independent of Base44**. Do not remove the remaining SDK or backend definitions until the replacement API is implemented and data has been migrated.

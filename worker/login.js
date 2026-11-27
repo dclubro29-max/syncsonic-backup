@@ -52,9 +52,13 @@ export async function redeemLogin(db, token, now) {
   const used = await db.prepare(`DELETE FROM login_challenges WHERE token_hash = ? AND expires_at > ?
     AND user_id IN (SELECT id FROM users WHERE role = 'user') RETURNING user_id`).bind(await tokenHash(token), now).first();
   if (!used) return [401, { error: 'invalid_login' }];
+  return issueSession(db, used.user_id, now);
+}
+
+export async function issueSession(db, userId, now, seconds = SESSION_SECONDS) {
   const session = randomToken();
-  await db.prepare('INSERT INTO sessions VALUES (?, ?, ?)').bind(await tokenHash(session), used.user_id, now + SESSION_SECONDS * 1000).run();
-  return [200, { ok: true }, cookie(session, SESSION_SECONDS)];
+  await db.prepare('INSERT INTO sessions VALUES (?, ?, ?)').bind(await tokenHash(session), userId, now + seconds * 1000).run();
+  return [200, { ok: true }, cookie(session, seconds)];
 }
 
 export async function logout(db, request) {

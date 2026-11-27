@@ -3,12 +3,52 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
+import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import worker from './index.js';
 import { premiumAccount, premiumCodeHash, redeemPremium } from './premium.js';
 import { requestLogin } from './login.js';
 import { importSnapshot } from './import-snapshot.js';
+import { adminSignIn } from './admin-access.js';
 
 const origin = 'https://syncsonic.example';
+
+test('admin sign-in rejects missing configuration, missing assertions and untrusted client identity', async () => {
+  const request = (headers) => new Request(origin + '/api/v1/admin/sign-in', { method: 'POST', headers });
+  const configured = { ADMIN_ACCESS_ISSUER: 'https://test.cloudflareaccess.com', ADMIN_ACCESS_AUDIENCE: 'test-app' };
+  const now = Date.now();
+  assert.equal((await adminSignIn(request(), {}, now))[0], 503);
+  assert.equal((await adminSignIn(request({ 'Cf-Access-Authenticated-User-Email': 'admin@example.test' }), configured, now))[0], 401);
+  assert.equal((await adminSignIn(request({ 'Cf-Access-Jwt-Assertion': 'invalid' }), configured, now))[0], 401);
+});
+
+test('Access assertion signs in only an imported administrator and limits the session lifetime', async (t) => {
+  const { DB, sql } = fixture();
+  try {
+    const issuer = 'https://test-signatures.cloudflareaccess.com';
+    const audience = 'syncsonic-admin-test';
+    const { publicKey, privateKey } = await generateKeyPair('RS256');
+    const jwk = { ...await exportJWK(publicKey), kid: 'test-key', alg: 'RS256' };
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      assert.equal(String(url), issuer + '/cdn-cgi/access/certs');
+      return Response.json({ keys: [jwk] });
+    });
+    sql.prepare("UPDATE users SET role = 'admin' WHERE id = 'b'").run();
+    const now = Date.now();
+    const env = { DB, ADMIN_ACCESS_ISSUER: issuer, ADMIN_ACCESS_AUDIENCE: audience };
+    const signIn = async (email, aud) => {
+      const token = await new SignJWT({ email }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+        .setIssuer(issuer).setAudience(aud).setSubject(email).setExpirationTime('1h').sign(privateKey);
+      return adminSignIn(new Request(origin, { headers: { 'Cf-Access-Jwt-Assertion': token } }), env, now);
+    };
+    assert.equal((await signIn('b@example.test', 'other-app'))[0], 401);
+    assert.equal((await signIn('a@example.test', audience))[0], 403);
+    const [status, , cookie] = await signIn('b@example.test', audience);
+    assert.equal(status, 200);
+    assert.match(cookie, /^__Host-syncsonic=.*HttpOnly.*Max-Age=900$/);
+  } finally {
+    sql.close();
+  }
+});
 
 test('snapshot import preserves rights, masks codes, rejects retries and rolls back inconsistent data', async () => {
   const sql = new DatabaseSync(':memory:');
@@ -155,6 +195,11 @@ test('remote commands are account-scoped and terminal commands stay terminal', a
     const command = await send('remote/commands', { method: 'POST', data });
     assert.equal(command.status, 201);
     const { id } = await command.json();
+    const claim = { method: 'PATCH', data: { claim_device: 'player' } };
+    assert.equal((await send(`remote/commands/${id}`, { ...claim, user: 'b' })).status, 409);
+    assert.equal((await send(`remote/commands/${id}`, claim)).status, 200);
+    assert.equal((await send(`remote/commands/${id}`, claim)).status, 409);
+    assert.deepEqual((await (await send('remote/commands/player?pending=1')).json()).items, []);
     const done = { method: 'PATCH', data: { status: 'done' } };
     assert.equal((await send(`remote/commands/${id}`, { ...done, user: 'b' })).status, 404);
     assert.equal((await send(`remote/commands/${id}`, done)).status, 200);

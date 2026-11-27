@@ -3,6 +3,7 @@ import {
   CheckCircle2, Copy, Loader2, QrCode, RotateCcw, Smartphone, TriangleAlert, X,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { workerAuthenticated, workerPreview } from '@/api/workerClient';
 import { useDj } from '@/lib/djContext';
 import { Button } from '@/components/ui/button';
 import StatusPill from '@/components/ui-kit/StatusPill';
@@ -71,7 +72,7 @@ export default function PhoneCalibrationPanel({ zone, outputs, disabled, onStatu
     }
     (async () => {
       try {
-        const authed = await base44.auth.isAuthenticated();
+        const authed = await (workerPreview ? workerAuthenticated() : base44.auth.isAuthenticated());
         if (!active) return;
         if (!authed) {
           setPhase('error');

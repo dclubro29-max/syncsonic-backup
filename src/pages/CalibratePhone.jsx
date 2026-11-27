@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Loader2, Mic, Smartphone, TriangleAlert, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { workerAuthenticated, workerPreview } from '@/api/workerClient';
 import { Button } from '@/components/ui/button';
 import StatusPill from '@/components/ui-kit/StatusPill';
 import CalibrationLoginPrompt from '@/components/speakers/CalibrationLoginPrompt';
@@ -50,7 +51,7 @@ export default function CalibratePhone() {
     }
     (async () => {
       try {
-        const authed = await base44.auth.isAuthenticated();
+        const authed = await (workerPreview ? workerAuthenticated() : base44.auth.isAuthenticated());
         if (!active) return;
         if (!authed) {
           setAuth('no');

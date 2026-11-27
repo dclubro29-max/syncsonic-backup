@@ -1,10 +1,10 @@
 export const workerPreview = import.meta.env.VITE_SYNCSONIC_WORKER_PREVIEW === "true";
 
-export async function workerRequest(path, payload) {
+export async function workerRequest(path, payload, method = payload === undefined ? "GET" : "POST") {
   const response = await fetch(`/api/v1/${path}`, {
     credentials: "same-origin",
+    method,
     ...(payload === undefined ? {} : {
-      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
@@ -16,4 +16,14 @@ export async function workerRequest(path, payload) {
     throw error;
   }
   return data;
+}
+
+export async function workerAuthenticated() {
+  try {
+    await workerRequest("account/session");
+    return true;
+  } catch (error) {
+    if (error.status === 401) return false;
+    throw error;
+  }
 }

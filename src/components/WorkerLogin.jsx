@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { LogIn } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { workerRequest } from "@/api/workerClient";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function WorkerLogin() {
+  const { pathname } = useLocation();
+  const admin = pathname === "/admin-sign-in";
   const [ticket, setTicket] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get("ticket"));
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,7 +23,10 @@ export default function WorkerLogin() {
     setBusy(true);
     setError("");
     try {
-      if (ticket) {
+      if (admin) {
+        await workerRequest("admin/sign-in", {});
+        window.location.replace(safeReturnTo());
+      } else if (ticket) {
         await workerRequest("account/login-confirm", { ticket });
         window.location.replace(safeReturnTo());
       } else {
@@ -47,7 +53,7 @@ export default function WorkerLogin() {
         <p role="status">Dacă adresa este asociată unui cont, vei primi un link de conectare.</p>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          {!ticket && (
+          {!ticket && !admin && (
             <>
               <Label htmlFor="worker-login-email">Email</Label>
               <Input id="worker-login-email" type="email" autoComplete="email" required
@@ -55,8 +61,14 @@ export default function WorkerLogin() {
             </>
           )}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Se procesează…" : ticket ? "Confirmă conectarea" : "Trimite linkul"}
+            {busy ? "Se procesează…" : ticket || admin ? "Confirmă conectarea" : "Trimite linkul"}
           </Button>
+          {!ticket && !admin && (
+            <a className="block text-center text-sm text-primary hover:underline"
+              href={"/admin-sign-in?returnTo=" + encodeURIComponent(safeReturnTo())}>
+              Acces administrator
+            </a>
+          )}
         </form>
       )}
     </AuthLayout>

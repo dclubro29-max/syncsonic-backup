@@ -72,6 +72,7 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Add your page Route elements here */}
       <Route path="/login" element={workerPreview ? <WorkerLogin /> : <Login />} />
+      {workerPreview && <Route path="/admin-sign-in" element={<WorkerLogin />} />}
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

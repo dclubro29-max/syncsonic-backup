@@ -1,6 +1,7 @@
 import { sessionUser } from './session.js';
 import { premiumAccount, redeemPremium } from './premium.js';
 import { logout, redeemLogin, requestLogin } from './login.js';
+import { adminSignIn } from './admin-access.js';
 
 const devicePattern = /^[A-Za-z0-9_-]{1,64}$/;
 const calibrationPattern = /^[A-Z2-9]{8}$/;
@@ -70,9 +71,13 @@ async function remote(request, db, userId, resource, key, now) {
   }
 
   if (resource === 'commands' && request.method === 'GET' && devicePattern.test(key ?? '')) {
+    const pending = new URL(request.url).searchParams.get('pending') === '1';
+    const filter = pending
+      ? "AND json_extract(payload, '$.status') IN ('scheduled', 'pending') ORDER BY play_at, created_at"
+      : "ORDER BY created_at DESC";
     const { results } = await db.prepare(`
       SELECT id, payload, play_at, created_at FROM remote_commands
-      WHERE user_id = ? AND device_id = ? AND play_at >= ? ORDER BY play_at, created_at LIMIT 100
+      WHERE user_id = ? AND device_id = ? AND play_at >= ? ${filter} LIMIT 100
     `).bind(userId, key, now - 120000).all();
     return json({ items: results.map(row => record(row, { id: row.id, device_id: key,
       play_at: row.play_at, created_date: new Date(row.created_at).toISOString() })) });
@@ -99,6 +104,15 @@ async function remote(request, db, userId, resource, key, now) {
 
   if (resource === 'commands' && request.method === 'PATCH' && devicePattern.test(key ?? '')) {
     const data = await body(request);
+    if (devicePattern.test(data?.claim_device ?? '')) {
+      const claimed = await db.prepare(`
+        UPDATE remote_commands SET payload = json_set(payload, '$.status', 'preparing')
+        WHERE id = ? AND user_id = ? AND device_id = ? AND play_at BETWEEN ? AND ?
+          AND json_extract(payload, '$.status') IN ('pending', 'scheduled')
+        RETURNING id
+      `).bind(key, userId, data.claim_device, now - 120000, now).first();
+      return claimed ? json(claimed) : json({ error: 'command_unavailable' }, 409);
+    }
     if (!data || !['preparing', 'mixing', 'done', 'skipped', 'failed'].includes(data.status)) {
       return json({ error: 'invalid_status' }, 400);
     }
@@ -168,6 +182,10 @@ export default {
     const now = Date.now();
     const [, , version, area, resource, key, extra] = url.pathname.split('/');
     if (version !== 'v1' || extra) return json({ error: 'not_found' }, 404);
+    if (area === 'admin' && resource === 'sign-in' && !key && request.method === 'POST') {
+      const [status, response, cookie] = await adminSignIn(request, env, now);
+      return json(response, status, cookie);
+    }
     if (area === 'account' && !key && request.method === 'POST') {
       let reply;
       if (resource === 'login-request') {

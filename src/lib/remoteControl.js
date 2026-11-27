@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { workerPreview, workerRequest } from '@/api/workerClient';
 
 const DEVICE_KEY = 'musicsync.remoteDeviceId';
 
@@ -43,6 +44,11 @@ export function publishDevice(tracks, state = {}, { includeTracks = true } = {})
       payload.tracks = tracks.map(({ id, name }) => ({ id, name }));
       payload.track_count = tracks.length;
     }
+    if (workerPreview) {
+      const record = await workerRequest('remote/devices/' + encodeURIComponent(deviceId), payload, 'PUT');
+      deviceRecordId = record.device_id;
+      return record;
+    }
     if (!deviceRecordId) {
       const page = await base44.entities.RemoteDevice.filter({ device_id: deviceId }, { limit: 1 });
       deviceRecordId = page.items[0]?.id || null;
@@ -61,7 +67,7 @@ export function sendRemoteCommand({
   targetId, action = 'play', trackId = '', trackName = '', playAt = Date.now(),
   style = 'dj', volume,
 }) {
-  return base44.entities.RemoteCommand.create({
+  const command = {
     device_id: targetId,
     action,
     track_id: trackId,
@@ -70,7 +76,28 @@ export function sendRemoteCommand({
     ...(action === 'mix_now' ? { style } : {}),
     ...(action === 'volume' ? { volume } : {}),
     status: playAt > Date.now() + 1500 ? 'scheduled' : 'pending',
-  });
+  };
+  return workerPreview ? workerRequest('remote/commands', command) : base44.entities.RemoteCommand.create(command);
+}
+
+export function pollRemote(load, onValue, interval = 2000) {
+  let stopped = false;
+  let timer;
+  const poll = async () => {
+    try {
+      const value = await load();
+      if (!stopped) onValue(value);
+    } catch {
+      // Retry after the interval.
+    } finally {
+      if (!stopped) timer = setTimeout(poll, interval);
+    }
+  };
+  void poll();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }
 
 /** Trimite dispozitivului țintă piesa care trebuie pornită, acum sau la o oră. */
