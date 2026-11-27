@@ -97,7 +97,7 @@ export default function PremiumCards() {
             </div>
 
             <div className="mt-3 flex items-center gap-3">
-              <QrImage code={item.code} size={240} className="h-20 w-20 shrink-0 rounded-lg bg-white" />
+              <QrImage code={item.code} className="h-20 w-20 shrink-0 rounded-lg bg-white" />
               <div className="min-w-0">
                 <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#7c6a9a]">Codul tău</p>
                 <p className="premium-card-code mt-1 text-[26px] font-semibold leading-none">{item.code}</p>

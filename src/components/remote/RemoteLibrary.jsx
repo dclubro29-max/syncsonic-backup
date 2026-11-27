@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { parseTrackName } from "@/lib/trackName";
-import { ChevronDown, Clock, Music, Plus, Search, Zap } from "lucide-react";
+import { ChevronDown, Clock, Mic, Music, Plus, Search, Zap } from "lucide-react";
 
 const STYLES = [
   { id: "dj", label: "DJ", hint: "beatmatch când se poate" },
@@ -17,21 +17,77 @@ const STYLES = [
   { id: "quick", label: "Rapidă", hint: "intrare scurtă" },
 ];
 
+const searchText = (value) => value.normalize("NFD").replace(/\p{M}/gu, "")
+  .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
 /** Biblioteca gazdei: caută, mixează imediat sau adaugă la coadă. */
 export default function RemoteLibrary({ device, large, onMixNow, onQueue, onPick }) {
   const [query, setQuery] = useState("");
   const [style, setStyle] = useState("dj");
+  const [listening, setListening] = useState(false);
+  const [voiceMessage, setVoiceMessage] = useState("");
+  const recognition = useRef(null);
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  useEffect(() => {
+    setListening(false);
+    setVoiceMessage("");
+    return () => {
+      const active = recognition.current;
+      recognition.current = null;
+      active?.abort();
+    };
+  }, [device?.device_id]);
+
+  const listen = () => {
+    if (!Recognition || !device?.tracks?.length || recognition.current) return;
+    const active = new Recognition();
+    recognition.current = active;
+    active.lang = "ro-RO";
+    active.onresult = (event) => {
+      if (recognition.current !== active) return;
+      const transcript = event.results[0]?.[0]?.transcript || "";
+      const titleText = searchText(transcript).replace(/^(pune|reda|play)\s+/, "").replace(/^piesa\s+/, "");
+      if (!titleText) return;
+      setQuery(titleText);
+      const exact = device.tracks.filter((track) => {
+        const { artist, title } = parseTrackName(track.name || "");
+        return [title, `${title} ${artist}`, `${artist} ${title}`].some((name) => searchText(name) === titleText);
+      });
+      if (exact.length === 1) {
+        setVoiceMessage("Trimit piesa la gazdă.");
+        onMixNow(exact[0], style);
+      } else {
+        setVoiceMessage("Alege piesa din rezultate.");
+      }
+    };
+    active.onerror = () => {
+      if (recognition.current === active) setVoiceMessage("Nu am putut folosi microfonul. Poți căuta după titlu.");
+    };
+    active.onend = () => {
+      if (recognition.current !== active) return;
+      recognition.current = null;
+      setListening(false);
+    };
+    try {
+      active.start();
+      setListening(true);
+      setVoiceMessage("Spune «Pune» și titlul piesei.");
+    } catch {
+      recognition.current = null;
+      setVoiceMessage("Microfonul nu este disponibil.");
+    }
+  };
   const currentId = device?.now_playing?.track_id || null;
   const nextId = device?.queue?.[0]?.id || null;
   const styleLabel = STYLES.find((item) => item.id === style)?.label || "DJ";
 
   const tracks = useMemo(() => {
     const list = device?.tracks || [];
-    const q = query.trim().toLowerCase();
+    const q = searchText(query);
     if (!q) return list;
     return list.filter((track) => {
       const { artist, title } = parseTrackName(track.name || "");
-      return `${title} ${artist} ${track.name || ""}`.toLowerCase().includes(q);
+      return searchText(`${title} ${artist} ${track.name || ""}`).includes(q);
     });
   }, [device, query]);
 
@@ -44,7 +100,8 @@ export default function RemoteLibrary({ device, large, onMixNow, onQueue, onPick
             {device?.label ? `Piesele de pe ${device.label}` : "Alege întâi un dispozitiv."}
           </p>
         </div>
-        <div className="relative w-full sm:w-64">
+        <div className="flex w-full gap-2 sm:w-72">
+          <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -53,8 +110,18 @@ export default function RemoteLibrary({ device, large, onMixNow, onQueue, onPick
             className={`pl-9 ${large ? "h-12 text-base" : "h-10 text-sm"}`}
             aria-label="Caută în biblioteca gazdei"
           />
+          </div>
+          {Recognition && (
+            <Button type="button" size="icon" variant="outline" onClick={listen}
+              className={large ? "h-12 w-12 shrink-0" : "shrink-0"}
+              disabled={listening || !device?.tracks?.length} aria-label="Alege o piesă folosind microfonul"
+              title="Recunoaștere vocală prin browser">
+              <Mic className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
+      {voiceMessage && <p role="status" className="mt-2 text-xs text-muted-foreground">{voiceMessage}</p>}
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-muted-foreground">Stil „Mixează acum”</span>

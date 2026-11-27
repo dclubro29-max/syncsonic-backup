@@ -1,8 +1,7 @@
 import { base44 } from '@/api/base44Client';
-import { QR_MAX_BYTES } from '@/lib/qrCode';
+import { workerPreview, workerRequest } from '@/api/workerClient';
 
 export const SESSION_TTL_MS = 10 * 60 * 1000;
-export const PUBLISHED_ORIGIN = 'https://mussicsync.base44.app';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function createSessionCode() {
@@ -15,14 +14,8 @@ export function createSessionCode() {
   return Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('');
 }
 
-export function sessionLink(code) {
-  const path = `/calibrate?c=${encodeURIComponent(code)}`;
-  const origin = typeof window !== 'undefined' && window.location?.origin
-    ? window.location.origin
-    : PUBLISHED_ORIGIN;
-  const local = `${origin}${path}`;
-  if (new TextEncoder().encode(local).length <= QR_MAX_BYTES) return local;
-  return `${PUBLISHED_ORIGIN}${path}`;
+export function sessionLink(code, origin = window.location.origin) {
+  return new URL(`/calibrate?c=${encodeURIComponent(code)}`, origin).href;
 }
 
 export function isSessionExpired(session) {
@@ -32,7 +25,7 @@ export function isSessionExpired(session) {
 }
 
 export async function createCalibrationSession({ zone, outputs }) {
-  return base44.entities.CalibrationSession.create({
+  const session = {
     code: createSessionCode(),
     status: 'waiting',
     zone: zone || 'Zona principală',
@@ -43,11 +36,21 @@ export async function createCalibrationSession({ zone, outputs }) {
     phone_ready: false,
     capture_confirmed: false,
     expires_at: Date.now() + SESSION_TTL_MS,
-  });
+  };
+  return workerPreview ? workerRequest('calibration/sessions', session)
+    : base44.entities.CalibrationSession.create(session);
 }
 
 export async function readCalibrationSession(code) {
   if (!code) return null;
+  if (workerPreview) {
+    try {
+      return await readCalibrationSessionById(String(code).toUpperCase());
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  }
   const page = await base44.entities.CalibrationSession.filter(
     { code: String(code).toUpperCase() },
     { sort: '-created_date', limit: 1 }
@@ -56,10 +59,12 @@ export async function readCalibrationSession(code) {
 }
 
 export function readCalibrationSessionById(id) {
+  if (workerPreview) return workerRequest('calibration/sessions/' + encodeURIComponent(id));
   return base44.entities.CalibrationSession.get(id);
 }
 
 export function updateCalibrationSession(id, patch) {
+  if (workerPreview) return workerRequest('calibration/sessions/' + encodeURIComponent(id), patch, 'PATCH');
   return base44.entities.CalibrationSession.update(id, patch);
 }
 

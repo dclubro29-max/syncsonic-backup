@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDj } from "@/lib/djContext";
 import { startReceiver } from "@/lib/localTransfer";
+import { workerPreview } from "@/api/workerClient";
+import { cloudCodePattern, startCloudReceiver } from "@/lib/cloudTransfer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import TransferProgress from '@/components/library/TransferProgress';
-import { Wifi } from "lucide-react";
+import { Download } from "lucide-react";
 
 const LABEL = {
   finding: "Caut codul…",
@@ -28,13 +30,19 @@ export default function LibraryImportCode() {
   useEffect(() => () => { sessionRef.current++; handleRef.current?.cancel(); }, []);
 
   const bring = async (raw) => {
-    const value = (raw ?? entry).trim().toUpperCase();
+    const input = (raw ?? entry).trim();
+    const value = workerPreview ? input : input.toUpperCase();
     if (!value) return;
+    if (workerPreview && !cloudCodePattern.test(value)) {
+      setError("Copiază codul complet de transfer.");
+      return;
+    }
     const session = ++sessionRef.current;
     handleRef.current?.cancel();
     setError(''); setMessage(''); setProgress(null); setPhase('finding');
     try {
-      const handle = await startReceiver({ code: value,
+      const receive = workerPreview ? startCloudReceiver : startReceiver;
+      const handle = await receive({ code: value,
         onState: (state) => {
           if (session !== sessionRef.current) return;
           if (state.phase === 'error') setError(state.message || 'Transferul nu a reușit.');
@@ -68,8 +76,9 @@ export default function LibraryImportCode() {
   return (
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Ai un cod de la celălalt dispozitiv? Introdu-l aici, cu transferul pornit pe celălalt
-        dispozitiv și ambele în același Wi-Fi. Piesele vin direct, fără descărcare din cloud.
+        {workerPreview
+          ? "Lipește codul primit ca să descarci piesele în biblioteca ta, de pe orice conexiune la internet."
+          : "Introdu codul cu transferul pornit pe celălalt dispozitiv, în aceeași rețea Wi-Fi."}
       </p>
 
       <form
@@ -81,10 +90,13 @@ export default function LibraryImportCode() {
       >
         <Input
           value={entry}
-          onChange={(event) => setEntry(event.target.value.toUpperCase())}
+          onChange={(event) => setEntry(workerPreview ? event.target.value : event.target.value.toUpperCase())}
           placeholder="COD"
-          maxLength={8}
-          className="w-[160px] font-mono tracking-[0.25em]"
+          maxLength={workerPreview ? 80 : 8}
+          className={workerPreview ? "w-full max-w-sm font-mono" : "w-[160px] font-mono tracking-[0.25em]"}
+          aria-label="Cod de transfer"
+          autoCapitalize="none"
+          spellCheck={false}
           disabled={active}
         />
         {active ? (
@@ -93,13 +105,13 @@ export default function LibraryImportCode() {
           </Button>
         ) : (
           <Button type="submit" variant="outline" className="gap-2" disabled={!entry.trim()}>
-            <Wifi className="h-4 w-4" />
+            <Download className="h-4 w-4" />
             Adu piesele
           </Button>
         )}
       </form>
 
-      {active && <p className="text-xs text-muted-foreground">{LABEL[phase]}</p>}
+      {active && <p className="text-xs text-muted-foreground">{workerPreview && phase === "receiving" ? "Descarc piesele…" : LABEL[phase]}</p>}
 
       <TransferProgress progress={progress} />
 

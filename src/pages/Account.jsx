@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useDj } from "@/lib/djContext";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import AccountPremiumCard from "@/components/premium/AccountPremiumCard";
 export default function Account() {
   const dj = useDj();
   // Sesiunea vine din AuthProvider; pagina nu mai repetă cererea /auth/me.
-  const { user, isLoadingAuth } = useAuth();
+  const { user, isLoadingAuth, logout } = useAuth();
   const checking = isLoadingAuth;
   const [usage, setUsage] = useState(null);
 
@@ -55,7 +54,7 @@ export default function Account() {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              <Button variant="outline" className="gap-2 border-border/80" onClick={() => base44.auth.logout("/")}>
+              <Button variant="outline" className="gap-2 border-border/80" onClick={() => void logout("/")}>
                 <LogOut className="h-4 w-4" />
                 Deconectare
               </Button>

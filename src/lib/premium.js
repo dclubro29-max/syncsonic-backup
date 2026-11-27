@@ -1,4 +1,3 @@
-export const ACTIVATION_ORIGIN = "https://mussicsync.base44.app";
 export const PENDING_CODE_KEY = "syncsonic.pendingCode";
 export const CODE_LENGTH = 6;
 
@@ -16,12 +15,8 @@ export function maskCode(code) {
   return `${clean.slice(0, 2)}••${clean.slice(-2)}`;
 }
 
-export function activationUrl(code) {
-  return `${ACTIVATION_ORIGIN}/activate?code=${encodeURIComponent(normalizeCode(code))}`;
-}
-
-export function qrImageUrl(code, size = 320) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&ecc=M&data=${encodeURIComponent(activationUrl(code))}`;
+export function activationUrl(code, origin = window.location.origin) {
+  return new URL(`/activate?code=${encodeURIComponent(normalizeCode(code))}`, origin).href;
 }
 
 export function formatDateRo(dateOnly) {

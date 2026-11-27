@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { workerPreview, workerRequest } from "@/api/workerClient";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/ui-kit/PageHeader";
 import ThisDeviceCard from "@/components/remote/ThisDeviceCard";
 import RemoteTargets from "@/components/remote/RemoteTargets";
@@ -11,7 +13,7 @@ import RecentCommands from "@/components/remote/RecentCommands";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import { clockText, getDeviceId, getDeviceLabel, sendRemoteCommand } from "@/lib/remoteControl";
+import { clockText, getDeviceId, getDeviceLabel, pollRemote, sendRemoteCommand } from "@/lib/remoteControl";
 import { Smartphone, Type } from "lucide-react";
 
 const LARGE_KEY = "musicsync.remoteLarge";
@@ -19,6 +21,7 @@ const LARGE_KEY = "musicsync.remoteLarge";
 /** Telecomanda de pe telefon: alege gazda, caută și mixează imediat. */
 export default function Remote() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const myId = getDeviceId();
   const [devices, setDevices] = useState([]);
   const [targetId, setTargetId] = useState(null);
@@ -41,9 +44,14 @@ export default function Remote() {
   }, []);
 
   useEffect(() => {
+    if (workerPreview) {
+      setDevices([]);
+      if (!user?.id) return undefined;
+      return pollRemote(() => workerRequest("remote/devices"), ({ items }) => setDevices(items));
+    }
     loadDevices();
     return base44.entities.RemoteDevice.subscribe(loadDevices);
-  }, [loadDevices]);
+  }, [loadDevices, user?.id]);
 
   const mine = devices.find((device) => device.device_id === myId) || null;
   const others = devices.filter((device) => device.device_id !== myId);
@@ -57,9 +65,14 @@ export default function Remote() {
   }, [others, targetId]);
 
   useEffect(() => {
-    if (!targetDeviceId) {
+    if (!targetDeviceId || (workerPreview && !user?.id)) {
       setCommands([]);
       return undefined;
+    }
+    if (workerPreview) {
+      setCommands([]);
+      return pollRemote(() => workerRequest("remote/commands/" + encodeURIComponent(targetDeviceId)),
+        ({ items }) => setCommands(items.sort((a, b) => b.created_date.localeCompare(a.created_date)).slice(0, 8)));
     }
     const load = () => {
       base44.entities.RemoteCommand.filter(
@@ -71,7 +84,7 @@ export default function Remote() {
     };
     load();
     return base44.entities.RemoteCommand.subscribe(load);
-  }, [targetDeviceId]);
+  }, [targetDeviceId, user?.id]);
 
   const sendCommand = async (action, payload = {}, success) => {
     if (!targetDeviceId || busy) return;

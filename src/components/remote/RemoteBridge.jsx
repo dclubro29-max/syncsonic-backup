@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { workerPreview, workerRequest } from "@/api/workerClient";
+import { useAuth } from "@/lib/AuthContext";
 import { useDj } from "@/lib/djContext";
-import { getDeviceId, publishDevice } from "@/lib/remoteControl";
+import { getDeviceId, pollRemote, publishDevice } from "@/lib/remoteControl";
 
 /**
  * Puntea de telecomandă: publică biblioteca și starea redării acestui dispozitiv
@@ -27,6 +29,7 @@ function audibleIndex(engine) {
 
 export default function RemoteBridge() {
   const dj = useDj();
+  const { user } = useAuth();
   const djRef = useRef(dj);
   djRef.current = dj;
   const deviceId = useRef(getDeviceId()).current;
@@ -34,11 +37,13 @@ export default function RemoteBridge() {
   const running = useRef(false);
 
   const setStatus = useCallback((id, status, error_message = "") => {
-    return base44.entities.RemoteCommand.update(id, {
+    const patch = {
       status,
       done_at: Date.now(),
       error_message,
-    }).catch(() => {});
+    };
+    return (workerPreview ? workerRequest("remote/commands/" + encodeURIComponent(id), patch, "PATCH")
+      : base44.entities.RemoteCommand.update(id, patch)).catch(() => {});
   }, []);
 
   const execute = useCallback(async (command) => {
@@ -198,14 +203,24 @@ export default function RemoteBridge() {
           await setStatus(command.id, "skipped", "Comanda a expirat.");
           continue;
         }
+        if (workerPreview) {
+          try {
+            await workerRequest("remote/commands/" + encodeURIComponent(command.id), {
+              claim_device: deviceId,
+            }, "PATCH");
+          } catch {
+            continue;
+          }
+        }
         await execute(command);
       }
     } finally {
       running.current = false;
     }
-  }, [execute, setStatus]);
+  }, [deviceId, execute, setStatus]);
 
   const publish = useCallback((includeTracks = false) => {
+    if (workerPreview && !user?.id) return;
     const engine = djRef.current;
     const index = audibleIndex(engine);
     const deck = index >= 0 ? engine.decks[index] : null;
@@ -227,7 +242,7 @@ export default function RemoteBridge() {
       nowPlaying,
       queue: engine.playQueue || [],
     }, { includeTracks }).catch(() => {});
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     const debounce = setTimeout(() => publish(true), 300);
@@ -260,6 +275,21 @@ export default function RemoteBridge() {
     const accept = (command) =>
       command && command.device_id === deviceId &&
       (command.status === "scheduled" || command.status === "pending");
+
+    if (workerPreview) {
+      if (!user?.id) return undefined;
+      const stop = pollRemote(
+        () => workerRequest("remote/commands/" + encodeURIComponent(deviceId) + "?pending=1"),
+        ({ items }) => {
+          queue.current.clear();
+          items.filter(accept).forEach((command) => queue.current.set(command.id, command));
+          void drain();
+        }, 1500);
+      return () => {
+        stop();
+        queue.current.clear();
+      };
+    }
 
     let cancelled = false;
     const loadPending = async () => {
@@ -294,7 +324,7 @@ export default function RemoteBridge() {
       unsubscribe();
       clearInterval(timer);
     };
-  }, [deviceId, drain]);
+  }, [deviceId, drain, user?.id]);
 
   return null;
 }

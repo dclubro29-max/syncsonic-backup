@@ -1,4 +1,4 @@
-import { base44 } from '@/api/base44Client';
+import { readCalibrationSessionById } from '@/lib/calibrationSession';
 import { playBeep } from '@/lib/testTone';
 
 const wait = (ms, signal) => new Promise((resolve, reject) => {
@@ -23,7 +23,7 @@ async function waitForSession(id, predicate, { timeout, interval, signal }) {
   const started = Date.now();
   while (Date.now() - started < timeout) {
     signal?.throwIfAborted();
-    const session = await base44.entities.CalibrationSession.get(id);
+    const session = await readCalibrationSessionById(id);
     if (session.status === 'cancelled' || session.closed_at) {
       throw new Error('Gazda a închis sesiunea de calibrare. Redarea revine la starea de dinainte.');
     }

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { workerPreview, workerRequest } from "@/api/workerClient";
 import {
   PULSE_MODES,
   SKINS,
@@ -27,8 +28,7 @@ export function SkinProvider({ children }) {
   useEffect(() => {
     if (hasStoredSkin()) return;
     let cancelled = false;
-    base44.auth
-      .me()
+    (workerPreview ? workerRequest("account/session") : base44.auth.me())
       .then((user) => {
         if (cancelled || !SKINS.some((item) => item.id === user?.skin)) return;
         setSkinState(user.skin);
@@ -44,7 +44,8 @@ export function SkinProvider({ children }) {
     if (!SKINS.some((item) => item.id === id)) return;
     setSkinState(id);
     storeSkin(id);
-    base44.auth.updateMe({ skin: id }).catch(() => {});
+    (workerPreview ? workerRequest("account/profile", { skin: id }, "PATCH") : base44.auth.updateMe({ skin: id }))
+      .catch(() => {});
   }, []);
 
   const setPulseMode = useCallback((id) => {

@@ -1,15 +1,13 @@
 import React from "react";
-import { Image } from "@/components/ui/image";
-import { qrImageUrl } from "@/lib/premium";
+import CalibrationQr from "@/components/speakers/CalibrationQr";
+import { activationUrl } from "@/lib/premium";
 
-export default function QrImage({ code, size = 320, className = "h-36 w-36" }) {
+export default function QrImage({ code, className = "h-36 w-36" }) {
   return (
-    <Image
-      src={qrImageUrl(code, size)}
-      alt="Cod QR pentru activarea Premium"
-      referrerPolicy="no-referrer"
-      fittingType="fit"
-      className={className}
+    <CalibrationQr
+      value={activationUrl(code)}
+      label="Cod QR pentru activarea Premium"
+      className={`${className} p-0 shadow-none`}
     />
   );
 }

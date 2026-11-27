@@ -1,25 +1,30 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { qrMatrix } from '@/lib/qrCode';
+import { QR_MAX_BYTES, qrMatrix } from '@/lib/qrCode';
 
-export default function CalibrationQr({ value, className }) {
-  const matrix = useMemo(() => {
-    try { return qrMatrix(value); } catch (error) { return null; }
-  }, [value]);
+export default function CalibrationQr({ value, className, label = 'Cod QR pentru calibrarea cu telefonul' }) {
+  const matrix = useMemo(() => (
+    new TextEncoder().encode(value).length <= QR_MAX_BYTES ? qrMatrix(value) : null
+  ), [value]);
 
-  if (!matrix) return null;
+  if (!matrix) return (
+    <a href={value} className="text-xs underline">
+      Deschide linkul
+    </a>
+  );
   const size = matrix.length;
+  const quietZone = 4;
 
   return (
     <div className={cn('rounded-2xl bg-white p-3 shadow-panel', className)}>
       <svg
-        viewBox={`0 0 ${size} ${size}`}
+        viewBox={`${-quietZone} ${-quietZone} ${size + 2 * quietZone} ${size + 2 * quietZone}`}
         className="h-full w-full"
         shapeRendering="crispEdges"
         role="img"
-        aria-label="Cod QR pentru calibrarea cu telefonul"
+        aria-label={label}
       >
-        <rect width={size} height={size} fill="#ffffff" />
+        <rect x={-quietZone} y={-quietZone} width={size + 2 * quietZone} height={size + 2 * quietZone} fill="#ffffff" />
         {matrix.map((row, y) => row.map((dark, x) => (
           dark ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="#111111" /> : null
         )))}
