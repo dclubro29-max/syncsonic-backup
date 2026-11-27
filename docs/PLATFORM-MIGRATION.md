@@ -2,7 +2,7 @@
 
 ## Preview using Cloudflare
 
-Worldwide library transfers in the preview require a private R2 bucket bound as `TRANSFER_FILES` and D1 migration `0005_cloud_transfers.sql`. Configure an R2 lifecycle rule to expire objects under `transfers/` after one day, then check upload and download on different networks before publishing. The download code is a bearer credential and expires after 24 hours. Keep the bucket private and do not log authorization headers.
+Worldwide library transfers support a private KV namespace bound as `TRANSFER_KV` on Workers Free, or a private R2 bucket bound as `TRANSFER_FILES`. Apply D1 migrations through `0006_transfer_uploads.sql`. KV entries expire automatically and support 20 MiB per file and 100 MiB per transfer. A freshly uploaded KV file can take about a minute to become readable in another region. For R2, set a lifecycle rule to expire objects under `transfers/` after one day. Test on different networks before publishing. The download code expires after 24 hours. Keep storage private and avoid logging authorization headers.
 
 Build with `VITE_SYNCSONIC_WORKER_PREVIEW=true` to route sign-in, Premium redemption, remote commands, and speaker calibration through the Worker. The phone and host must use the same SyncSonic account. The host claims each due command in the database before executing it, so two tabs cannot play the same command.
 

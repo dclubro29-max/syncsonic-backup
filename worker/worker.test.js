@@ -87,6 +87,7 @@ function fixture() {
   sql.exec(readFileSync(new URL('./migrations/0003_login_challenges.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0004_library_pairs.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0005_cloud_transfers.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('./migrations/0006_transfer_uploads.sql', import.meta.url), 'utf8'));
   const DB = { prepare(query) {
     const statement = sql.prepare(query);
     return { bind(...values) {
@@ -159,6 +160,41 @@ test('cloud transfer downloads byte-identical files without a sender session and
     assert.equal(sql.prepare('SELECT token_hash FROM cloud_transfers').get().token_hash, createHash('sha256').update(code).digest('hex'));
     sql.prepare('UPDATE cloud_transfers SET expires_at = 0').run();
     assert.equal((await call('file/0', 'GET', token)).status, 404);
+  } finally { sql.close(); }
+});
+
+test('free KV transfers finalize using upload receipts and tolerate regional propagation delay', async () => {
+  const { DB, sql } = fixture();
+  const objects = new Map();
+  let retrievable = false;
+  const TRANSFER_KV = {
+    async put(key, stream, { expiration }) {
+      assert.ok(expiration > Date.now() / 1000);
+      objects.set(key, await new Response(stream).arrayBuffer());
+    },
+    async get(key, type) {
+      assert.equal(type, 'stream');
+      return retrievable ? new Response(objects.get(key)).body : null;
+    },
+  };
+  const call = (path, method, headers = {}, body) => worker.fetch(new Request(origin + '/api/v1/transfer/' + path,
+    { method, headers: { Origin: origin, ...headers }, body }), { DB, TRANSFER_KV });
+  const sender = { cookie: '__Host-syncsonic=' + 'a'.repeat(43), 'Content-Type': 'application/json' };
+  try {
+    const files = [{ name: 'test.wav', type: 'audio/wav', size: 1 }];
+    const create = (files) => call('create', 'POST', sender, JSON.stringify({ files }));
+    assert.equal((await create([{ ...files[0], size: 21 * 1024 * 1024 }])).status, 400);
+    const { id, code } = await (await create(files)).json();
+    const token = { Authorization: 'Bearer ' + code };
+    assert.equal((await call('finish/' + id, 'POST', sender)).status, 409);
+    const upload = () => call('upload/' + id + '?index=0', 'PUT', { ...sender, 'Content-Length': '1' }, Uint8Array.of(100));
+    assert.equal((await upload()).status, 200);
+    assert.equal((await upload()).status, 200);
+    assert.equal(objects.size, 1);
+    assert.equal((await call('finish/' + id, 'POST', sender)).status, 200);
+    assert.equal((await call('file/0', 'GET', token)).status, 503);
+    retrievable = true;
+    assert.deepEqual(new Uint8Array(await (await call('file/0', 'GET', token)).arrayBuffer()), Uint8Array.of(100));
   } finally { sql.close(); }
 });
 

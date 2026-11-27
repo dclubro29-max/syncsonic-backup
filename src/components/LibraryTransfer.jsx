@@ -16,7 +16,7 @@ export default function LibraryTransfer() {
         </CardTitle>
         <p className="pt-1 text-xs leading-relaxed text-muted-foreground">
           {workerPreview
-            ? "Încarcă până la 20 de piese, 50 MB per piesă și 250 MB per transfer."
+            ? "Încarcă până la 20 de piese, 20 MB per piesă și 100 MB per transfer pe planul gratuit."
             : "Piesele se trimit direct între dispozitive, în aceeași rețea Wi-Fi, cu ambele deschise."}
         </p>
       </CardHeader>
