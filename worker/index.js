@@ -3,6 +3,7 @@ import { premiumAccount, redeemPremium } from './premium.js';
 import { logout, redeemLogin, requestLogin } from './login.js';
 import { adminSignIn } from './admin-access.js';
 import { libraryPair } from './library.js';
+import { cloudTransfer } from './cloud-transfer.js';
 
 const devicePattern = /^[A-Za-z0-9_-]{1,64}$/;
 const calibrationPattern = /^[A-Z2-9]{8}$/;
@@ -183,6 +184,7 @@ export default {
     const now = Date.now();
     const [, , version, area, resource, key, extra] = url.pathname.split('/');
     if (version !== 'v1' || extra) return json({ error: 'not_found' }, 404);
+    if (area === 'transfer') return cloudTransfer(request, env, resource, key, now, body);
     if (area === 'admin' && resource === 'sign-in' && !key && request.method === 'POST') {
       const [status, response, cookie] = await adminSignIn(request, env, now);
       return json(response, status, cookie);

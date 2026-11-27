@@ -3,9 +3,10 @@ import { useDj } from "@/lib/djContext";
 import { getTracks, formatSize } from "@/lib/trackStore";
 import { makePairCode, startSender } from "@/lib/localTransfer";
 import { workerPreview } from "@/api/workerClient";
+import { startCloudSender } from "@/lib/cloudTransfer";
 import { Button } from "@/components/ui/button";
 import TransferProgress from '@/components/library/TransferProgress';
-import { Wifi, Copy, Check, X } from "lucide-react";
+import { Upload, Copy, Check, X } from "lucide-react";
 
 const LABEL = {
   starting: "Pregătesc conexiunea…",
@@ -38,12 +39,14 @@ export default function LibraryShareCode() {
       const stored = await getTracks();
       if (session !== sessionRef.current) return;
       if (!stored.length) { setPhase('idle'); return; }
-      const next = makePairCode();
-      setCode(next);
-      const handle = await startSender({ code: next, tracks: stored, onState: (state) => {
+      const next = workerPreview ? undefined : makePairCode();
+      if (next) setCode(next);
+      const send = workerPreview ? startCloudSender : startSender;
+      const handle = await send({ code: next, tracks: stored, onState: (state) => {
         if (session !== sessionRef.current) return;
         if (state.phase === 'error') setError(state.message || 'Transferul s-a oprit.');
         if (state.progress) setProgress(state.progress);
+        if (state.code) setCode(state.code);
         setPhase(state.phase);
       } });
       if (session !== sessionRef.current) handle.cancel();
@@ -77,16 +80,15 @@ export default function LibraryShareCode() {
   return (
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Pornește transferul aici și primești un cod. Introdu codul pe celălalt dispozitiv, ține
-        ambele deschise în același Wi-Fi. Piesele merg direct între dispozitive.
-        Dacă reiei transferul, piesele deja salvate nu se retrimit.
-        {workerPreview && " Conectează ambele dispozitive în același cont SyncSonic."}
+        {workerPreview
+          ? "Încarcă piesele pe care ai dreptul să le distribui. După încărcare primești un cod valabil 24 de ore. Oricine are codul poate descărca piesele, chiar dacă închizi laptopul."
+          : "Pornește transferul și introdu codul pe celălalt dispozitiv, în aceeași rețea Wi-Fi."}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
         {!active && (
           <Button className="gap-2" onClick={begin} disabled={!dj.tracks.length}>
-            <Wifi className="h-4 w-4" />
+            <Upload className="h-4 w-4" />
             Pornesc transferul
           </Button>
         )}
@@ -103,7 +105,7 @@ export default function LibraryShareCode() {
 
       {code && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-3">
-          <span className="font-mono text-lg font-semibold tracking-[0.3em]">{code}</span>
+          <span className="break-all font-mono text-sm font-semibold">{code}</span>
           <Button variant="ghost" size="sm" className="gap-1.5" onClick={copy}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copiat" : "Copiază codul"}
@@ -111,9 +113,9 @@ export default function LibraryShareCode() {
         </div>
       )}
 
-      {active && <p className="text-xs text-muted-foreground">{LABEL[phase]}</p>}
+      {active && <p className="text-xs text-muted-foreground">{workerPreview ? "Încarc piesele…" : LABEL[phase]}</p>}
 
-      {phase === 'done' && <p className="text-xs text-primary">{LABEL.done}</p>}
+      {phase === 'done' && <p className="text-xs text-primary">{workerPreview ? "Codul e gata. Copiază-l și trimite-l destinatarului." : LABEL.done}</p>}
       <TransferProgress progress={progress} />
 
       {error && <p className="text-xs text-destructive">{error}</p>}

@@ -86,6 +86,7 @@ function fixture() {
   sql.exec(readFileSync(new URL('./migrations/0002_premium.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0003_login_challenges.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('./migrations/0004_library_pairs.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('./migrations/0005_cloud_transfers.sql', import.meta.url), 'utf8'));
   const DB = { prepare(query) {
     const statement = sql.prepare(query);
     return { bind(...values) {
@@ -114,6 +115,50 @@ test('session endpoint rejects anonymous and expired sessions', async () => {
     const response = await send('account/session');
     assert.equal(response.status, 200);
     assert.equal((await response.json()).id, 'a');
+  } finally { sql.close(); }
+});
+
+test('cloud transfer downloads byte-identical files without a sender session and enforces access and expiry', async () => {
+  const { DB, sql } = fixture();
+  const objects = new Map();
+  const TRANSFER_FILES = {
+    async put(key, stream) {
+      if (objects.has(key)) return null;
+      const data = await new Response(stream).arrayBuffer();
+      objects.set(key, data);
+      return { size: data.byteLength };
+    },
+    async head(key) {
+      return objects.has(key) ? { size: objects.get(key).byteLength } : null;
+    },
+    async get(key) {
+      return objects.has(key) ? { body: objects.get(key), size: objects.get(key).byteLength } : null;
+    },
+  };
+  const call = (path, method, headers = {}, body) => worker.fetch(new Request(origin + '/api/v1/transfer/' + path,
+    { method, headers: { Origin: origin, ...headers }, body }), { DB, TRANSFER_FILES });
+  const sender = { cookie: '__Host-syncsonic=' + 'a'.repeat(43), 'Content-Type': 'application/json' };
+  const audio = new Uint8Array([0, 1, 100, 255]);
+  try {
+    const files = [{ name: 'test.wav', type: 'audio/wav', size: audio.length }];
+    const body = JSON.stringify({ files });
+    assert.equal((await call('create', 'POST', { 'Content-Type': 'application/json' }, body)).status, 401);
+    const { id, code } = await (await call('create', 'POST', sender, body)).json();
+    const token = { Authorization: 'Bearer ' + code };
+    assert.equal((await call('manifest', 'GET', token)).status, 404);
+    assert.equal((await call('finish/' + id, 'POST', sender)).status, 409);
+    const target = 'upload/' + id + '?index=0';
+    assert.equal((await call(target, 'PUT', { ...sender, 'Content-Length': '3' }, audio)).status, 400);
+    assert.equal((await call(target, 'PUT', { ...sender, 'Content-Length': '4' }, audio)).status, 200);
+    assert.equal((await call('finish/' + id, 'POST', sender)).status, 200);
+    assert.deepEqual((await (await call('manifest', 'GET', token)).json()).files, files);
+    assert.equal((await call('file/0', 'GET')).status, 400);
+    const download = await call('file/0', 'GET', token);
+    assert.equal(download.status, 200);
+    assert.deepEqual(new Uint8Array(await download.arrayBuffer()), audio);
+    assert.equal(sql.prepare('SELECT token_hash FROM cloud_transfers').get().token_hash, createHash('sha256').update(code).digest('hex'));
+    sql.prepare('UPDATE cloud_transfers SET expires_at = 0').run();
+    assert.equal((await call('file/0', 'GET', token)).status, 404);
   } finally { sql.close(); }
 });
 
